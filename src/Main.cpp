@@ -4,8 +4,40 @@
 #include <cctype>
 #include <cstdlib>
 
-#include "bencode.cpp"
+#include "lib/nlohmann/json.hpp"
 
+using json = nlohmann::json;
+
+json decode_bencoded_value(const std::string& encoded_value) {
+    //if encoded value starts with a digit, it is a number
+    //get the first number
+    //check if digit
+    //if yes, look for colon ":"
+    if (std::isdigit(encoded_value[0])) {
+        // Example: "5:hello" -> "hello"
+        size_t colon_index = encoded_value.find(':');
+        if (colon_index != std::string::npos) {
+            std::string number_string = encoded_value.substr(0, colon_index);
+            int64_t number = std::atoll(number_string.c_str());
+            std::string str = encoded_value.substr(colon_index + 1, number);
+
+            //return str as a json variable
+            return json(str);
+        } else {
+            throw std::runtime_error("Invalid encoded value: " + encoded_value);
+        }
+    }
+    else if (encoded_value[0]) {
+        // Example: "i45e" -> "45"
+        char e_index = encoded_value.find('e');
+        std::string x = encoded_value.substr(1, encoded_value.size() - 2);
+
+        //return str as a json variable
+        return json(std::atoll(x.c_str()));
+    } else {
+        throw std::runtime_error("Unhandled encoded value: " + encoded_value);
+    }
+}
 
 int main(int argc, char* argv[]) {
     // Flush after every std::cout / std::cerr
@@ -28,9 +60,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Logs from your program will appear here!" << std::endl;
 
         // Uncomment this block to pass the first stage
-        Bencode bencode;
         std::string encoded_value = argv[2];
-        json decoded_value = bencode.decode(encoded_value);
+        json decoded_value = decode_bencoded_value(encoded_value);
         std::cout << decoded_value.dump() << std::endl;
     } else {
         std::cerr << "unknown command: " << command << std::endl;

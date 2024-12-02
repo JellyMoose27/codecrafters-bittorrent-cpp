@@ -1,14 +1,14 @@
-#ifndef BENCODE_H
-#define BENCODE_H
+// #ifndef BENCODE_H
+// #define BENCODE_H
 
-#include "lib/nlohmann/json.hpp"
+// #include "lib/nlohmann/json.hpp"
 
-using json = nlohmann::json;
+// using json = nlohmann::json;
 
-class Bencode
-{
-public:
-    json decode(const std::string& encoded_value);
-};
+// class Bencode
+// {
+// public:
+//     json decode(const std::string& encoded_value);
+// };
 
-#endif // BENCODE_H
+// #endif // BENCODE_H
