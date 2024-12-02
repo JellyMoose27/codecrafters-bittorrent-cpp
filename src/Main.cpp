@@ -9,6 +9,10 @@
 using json = nlohmann::json;
 
 json decode_bencoded_value(const std::string& encoded_value) {
+    //if encoded value starts with a digit, it is a number
+    //get the first number
+    //check if digit
+    //if yes, look for colon ":"
     if (std::isdigit(encoded_value[0])) {
         // Example: "5:hello" -> "hello"
         size_t colon_index = encoded_value.find(':');
