@@ -20,6 +20,8 @@ json decode_bencoded_value(const std::string& encoded_value) {
             std::string number_string = encoded_value.substr(0, colon_index);
             int64_t number = std::atoll(number_string.c_str());
             std::string str = encoded_value.substr(colon_index + 1, number);
+
+            //return str as a json variable
             return json(str);
         } else {
             throw std::runtime_error("Invalid encoded value: " + encoded_value);
