@@ -1,4 +1,4 @@
-#include "include/bencode.h"
+#include "bencode.h"
 
 json Bencode::decode(const std::string& encoded_value) {
     //if encoded value starts with a digit, it is a number
