@@ -32,7 +32,7 @@ json decode_bencoded_value(const std::string& encoded_value) {
         std::string x = encoded_value.substr(1, encoded_value.size() - 2);
 
         //return str as a json variable
-        return json(x.c_str());
+        return json(std::atoll(x.c_str()));
     } else {
         throw std::runtime_error("Unhandled encoded value: " + encoded_value);
     }
