@@ -54,9 +54,6 @@ json decode_bencoded_integer(const std::string& encoded_value, size_t& index) {
 }
 
 json decode_bencoded_list(const std::string& encoded_value, size_t& index) {
-    
-    index++;
-
     std::vector<json> list;
 
     while(index < encoded_value.size() - 1)
@@ -129,8 +126,11 @@ json decode_bencoded_value(const std::string& encoded_value, size_t& index)
     }
     else if (encoded_value[index] == 'l')
     {
+        index++;
         // Example: "l10:strawberryi559ee" -> "[strawberry, 559]"
-        return decode_bencoded_list(encoded_value, index);
+        json list = decode_bencoded_list(encoded_value, index);
+        index++;
+        return list;
     }
     else if (encoded_value[index] == 'd')
     {
