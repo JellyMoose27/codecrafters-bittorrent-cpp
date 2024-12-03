@@ -91,26 +91,6 @@ json decode_bencoded_list(const std::string& encoded_value, int& index) {
 
     return json(list);
 }
-json decode_bencoded_dict(const std::string& encoded_value)
-{
-    auto dict = nlohmann::ordered_map<json, json>();
-    // skip the 'd'
-    while (encoded_value[1] != 'e')
-    {
-        /*
-        d<key1><value1>...<keyN><valueN>
-        Example "d3:foo3:bare"
-        foo is key, bar is value
-
-        lexicographical order: a generalization of the alphabetical order of the dictionaries to sequences of ordered symbols or, 
-        more generally, of elements of a totally ordered set. 
-        */
-        auto key = decode_bencoded_value(encoded_value);
-        auto value = decode_bencoded_value(encoded_value);
-        dict.push_back({key, value});
-    }
-    return json(dict);
-}
 
 json decode_bencoded_value(const std::string& encoded_value)
 {
@@ -133,7 +113,23 @@ json decode_bencoded_value(const std::string& encoded_value)
     else if (encoded_value[0] == 'd')
     {
         // Example: "d3:foo3:bar5:helloi52ee" -> {"foo":"bar", "hello":"52"}
-        return decode_bencoded_dict(encoded_value);
+        auto dict = nlohmann::ordered_map<json, json>();
+        // skip the 'd'
+        while (encoded_value[1] != 'e')
+        {
+            /*
+            d<key1><value1>...<keyN><valueN>
+            Example "d3:foo3:bare"
+            foo is key, bar is value
+
+            lexicographical order: a generalization of the alphabetical order of the dictionaries to sequences of ordered symbols or, 
+            more generally, of elements of a totally ordered set. 
+            */
+            auto key = decode_bencoded_value(encoded_value);
+            auto value = decode_bencoded_value(encoded_value);
+            dict.push_back({key, value});
+        }
+        return json(dict);
     }
     else
     {
