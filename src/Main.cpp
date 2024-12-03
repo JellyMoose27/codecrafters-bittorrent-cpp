@@ -14,85 +14,85 @@ using json = nlohmann::json;
 
 
 
-json decode_bencoded_string(const std::string& encoded_value) {
+// json decode_bencoded_string(const std::string& encoded_value) {
 
-    size_t colon_index = encoded_value.find(':');
+//     size_t colon_index = encoded_value.find(':');
 
-    if (colon_index != std::string::npos) {
+//     if (colon_index != std::string::npos) {
 
-        std::string number_string = encoded_value.substr(0, colon_index);
+//         std::string number_string = encoded_value.substr(0, colon_index);
 
-        int64_t number = std::atoll(number_string.c_str());
+//         int64_t number = std::atoll(number_string.c_str());
 
-        std::string str = encoded_value.substr(colon_index + 1, number);
+//         std::string str = encoded_value.substr(colon_index + 1, number);
 
-        return json(str);
+//         return json(str);
 
-    } else {
-        throw std::runtime_error("Invalid encoded value: " + encoded_value);
-    }
+//     } else {
+//         throw std::runtime_error("Invalid encoded value: " + encoded_value);
+//     }
 
-}
+// }
 
-json decode_bencoded_integer(const std::string& encoded_value, size_t& index) {
-    size_t end_index = encoded_value.find('e', index);
-    if (end_index != std::string::npos) {
+// json decode_bencoded_integer(const std::string& encoded_value, size_t& index) {
+//     size_t end_index = encoded_value.find('e', index);
+//     if (end_index != std::string::npos) {
 
-        std::string num = encoded_value.substr(index + 1, end_index - index - 1);
+//         std::string num = encoded_value.substr(index + 1, end_index - index - 1);
 
-        int64_t number = std::atoll(num.c_str());
-        index = end_index + 1;
+//         int64_t number = std::atoll(num.c_str());
+//         index = end_index + 1;
 
-        return json(number);
+//         return json(number);
 
-    } else {
+//     } else {
 
-        throw std::runtime_error("Invalid encoded value: " + encoded_value);
+//         throw std::runtime_error("Invalid encoded value: " + encoded_value);
 
-    }
+//     }
 
-}
+// }
 
-json decode_bencoded_list(const std::string& encoded_value, size_t& index) {
-    std::vector<json> list;
+// json decode_bencoded_list(const std::string& encoded_value, size_t& index) {
+//     std::vector<json> list;
 
-    while(index < encoded_value.size() - 1)
-    {
-        if (encoded_value[index] == 'e')
-        {
-            index++;
-            return list;
-        }
-        if (std::isdigit(encoded_value[index]))
-        {
-            size_t colon_index = encoded_value.find(':');
-            std::string number_string = encoded_value.substr(index, colon_index);
+//     while(index < encoded_value.size() - 1)
+//     {
+//         if (encoded_value[index] == 'e')
+//         {
+//             index++;
+//             return list;
+//         }
+//         if (std::isdigit(encoded_value[index]))
+//         {
+//             size_t colon_index = encoded_value.find(':');
+//             std::string number_string = encoded_value.substr(index, colon_index);
 
-            int64_t number = std::atoll(number_string.c_str());
+//             int64_t number = std::atoll(number_string.c_str());
 
-            std::string str = encoded_value.substr(colon_index + 1, number);
-            list.push_back(json(str));
-            index = colon_index + number + 1;
-        }
-        else if (encoded_value[index] == 'l')
-        {
-            index++;
-            list.push_back(decode_bencoded_list(encoded_value, index));
-        }
-        else
-        {
-            size_t end_idx = encoded_value.find('e', index);
-            if (end_idx == std::string::npos)
-                throw std::invalid_argument("Invalid bencoded integer");
+//             std::string str = encoded_value.substr(colon_index + 1, number);
+//             list.push_back(json(str));
+//             index = colon_index + number + 1;
+//         }
+//         else if (encoded_value[index] == 'l')
+//         {
+//             index++;
+//             list.push_back(decode_bencoded_list(encoded_value, index));
+//         }
+//         else
+//         {
+//             size_t end_idx = encoded_value.find('e', index);
+//             if (end_idx == std::string::npos)
+//                 throw std::invalid_argument("Invalid bencoded integer");
     
-            std::string int_s = encoded_value.substr(index + 1, end_idx - index - 1);
-            list.push_back(json(stoll(int_s)));
-            index = end_idx + 1;
-        }
-    }
-    index++;
-    return json(list);
-}
+//             std::string int_s = encoded_value.substr(index + 1, end_idx - index - 1);
+//             list.push_back(json(stoll(int_s)));
+//             index = end_idx + 1;
+//         }
+//     }
+//     index++;
+//     return json(list);
+// }
 
 json decode_bencoded_value(const std::string& encoded_value, size_t& index);
 
@@ -117,20 +117,61 @@ json decode_bencoded_value(const std::string& encoded_value, size_t& index)
     if (std::isdigit(encoded_value[index]))
     {
         // Example: "5:hello" -> "hello"
-        return decode_bencoded_string(encoded_value);
+        size_t colon_index = encoded_value.find(':', index);
+
+        if (colon_index != std::string::npos) {
+
+        std::string number_string = encoded_value.substr(index, colon_index - index);
+
+        int64_t number = std::atoll(number_string.c_str());
+
+        std::string str = encoded_value.substr(colon_index + 1, number);
+
+        index = colon_index + number + 1;
+
+        return json(str);
+
+        } else {
+
+            throw std::runtime_error("Invalid encoded value: " + encoded_value);
+
+        }
     }
     else if (encoded_value[index] == 'i')
     {
         // Example: "i45e" - > "45"
-        return decode_bencoded_integer(encoded_value, index);
+        size_t e_index = encoded_value.find('e', index);
+
+        if (e_index != std::string::npos) {
+
+        std::string number_string = encoded_value.substr(index + 1, e_index - index - 1);
+
+        int64_t number = std::atoll(number_string.c_str());
+
+        index = e_index + 1;
+
+        return json(number);
+
+        } else {
+
+            throw std::runtime_error("Invalid encoded value: " + encoded_value);
+
+        }
     }
     else if (encoded_value[index] == 'l')
     {
         index++;
         // Example: "l10:strawberryi559ee" -> "[strawberry, 559]"
-        json list = decode_bencoded_list(encoded_value, index);
+        std::vector<json> list;
+        while(encoded_value[index] != 'e') {
+
+            list.push_back(decode_bencoded_value(encoded_value, index));
+
+        }
+
         index++;
-        return list;
+
+        return json(list);
     }
     else if (encoded_value[index] == 'd')
     {
