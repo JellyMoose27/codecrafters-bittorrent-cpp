@@ -35,14 +35,18 @@ json decode_bencoded_string(const std::string& encoded_value) {
 }
 
 json decode_bencoded_integer(const std::string& encoded_value) {
+    size_t end_index = encoded_value.find('e');
+    if (end_index != std::string::npos) {
 
-    size_t end_idx = encoded_value.find('e');
-    if (end_idx == std::string::npos)
-        throw std::invalid_argument("Invalid bencoded integer");
-    
-    std::string int_s = encoded_value.substr(1, end_idx - 1);
+        std::string num = encoded_value.substr(1, end_index - 1);
 
-    return json(std::stoll(int_s));
+        return json(stoll(num));
+
+    } else {
+
+        throw std::runtime_error("Invalid encoded value: " + encoded_value);
+
+    }
 
 }
 
@@ -80,7 +84,7 @@ json decode_bencoded_list(const std::string& encoded_value, int& index) {
                 throw std::invalid_argument("Invalid bencoded integer");
     
             std::string int_s = encoded_value.substr(index + 1, end_idx - index - 1);
-            list.push_back(json(std::stoll(int_s)));
+            list.push_back(json(stoll(int_s)));
             index = end_idx + 1;
         }
     }
