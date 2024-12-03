@@ -64,7 +64,7 @@ json decode_bencoded_list(const std::string& encoded_value, int& index) {
         if (std::isdigit(encoded_value[index]))
         {
             size_t colon_index = encoded_value.find(':');
-            std::string number_string = encoded_value.substr(0, colon_index);
+            std::string number_string = encoded_value.substr(index, colon_index);
 
             int64_t number = std::atoll(number_string.c_str());
 
