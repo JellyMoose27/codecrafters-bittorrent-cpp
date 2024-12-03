@@ -1,17 +1,14 @@
 #include <iostream>
-
 #include <string>
-
 #include <vector>
-
 #include <cctype>
-
 #include <cstdlib>
-
 #include <fstream>
-
+#include <array>
+#include <curl/curl.h>
 #include "lib/nlohmann/json.hpp"
 #include "lib/sha1.hpp"
+
 
 using json = nlohmann::json;
 
@@ -213,6 +210,7 @@ void parse_torrent(const std::string& filePath)
     std::cout << "Piece Length: " << pieceLength << std::endl;
     std::cout << "Piece Hashes: " << std::endl;
 
+    // concatenated SHA-1 hashes of each piece (20 bytes each)
     for (std::size_t i = 0; i < decoded_torrent["info"]["pieces"].get<std::string>().length(); i += 20)
     {
         std::string piece = decoded_torrent["info"]["pieces"].get<std::string>().substr(i, 20);
@@ -223,6 +221,65 @@ void parse_torrent(const std::string& filePath)
         }
         std::cout << ss.str() << std::endl;
     }
+}
+
+// Function to encode info_hash in URL-encoded format
+std::string url_encode(const std::string& value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (char c : value) {
+        if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+        } else {
+            escaped << '%' << std::setw(2) << int(static_cast<unsigned char>(c));
+        }
+    }
+
+    return escaped.str();
+}
+
+// Function to perform HTTP GET request
+size_t write_callback(void* contents, size_t size, size_t nmemb, std::string* userp) {
+    userp->append(static_cast<char*>(contents), size * nmemb);
+    return size * nmemb;
+}
+
+std::string http_get(const std::string& url) {
+    CURL* curl;
+    CURLcode res;
+    std::string response;
+
+    curl = curl_easy_init();
+    if (!curl) throw std::runtime_error("Failed to initialize CURL");
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        curl_easy_cleanup(curl);
+        throw std::runtime_error("CURL request failed: " + std::string(curl_easy_strerror(res)));
+    }
+
+    curl_easy_cleanup(curl);
+    return response;
+}
+
+// Function to parse compact peer list
+std::vector<std::string> parse_peers(const std::string& peers) {
+    std::vector<std::string> result;
+    for (size_t i = 0; i < peers.size(); i += 6) {
+        std::string ip = std::to_string((unsigned char)peers[i]) + "." +
+                         std::to_string((unsigned char)peers[i + 1]) + "." +
+                         std::to_string((unsigned char)peers[i + 2]) + "." +
+                         std::to_string((unsigned char)peers[i + 3]);
+        int port = ((unsigned char)peers[i + 4] << 8) | (unsigned char)peers[i + 5];
+        result.push_back(ip + ":" + std::to_string(port));
+    }
+    return result;
 }
 
 int main(int argc, char* argv[]) {
@@ -280,6 +337,58 @@ int main(int argc, char* argv[]) {
         }
         
         
+    }
+    else if (command == "peers")
+    {
+        std::string filePath = argv[2];
+
+        try
+        {
+            std::string fileContent = read_file(filePath);
+            json decoded_torrent = decode_bencoded_value(fileContent);
+
+            // bencode the torrent
+            std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
+
+            // calculate the info hash
+            SHA1 sha1;
+            sha1.update(bencoded_info);
+            std::string infoHash = sha1.final();
+            std::string urlEncodedHash = url_encode(infoHash);
+
+            // announceURL
+            std::string trackerURL = decoded_torrent["announce"];  
+
+            // length
+            int length = decoded_torrent["info"]["length"];
+
+            // Contruct GET message
+            std::string peerID = "00112233445566778899";
+            std::ostringstream url;
+            url << trackerURL << "?info_hash=" << urlEncodedHash
+                << "&peer_id=" << peerID
+                << "&port=6881"
+                << "&uploaded=0"
+                << "&downloaded=0"
+                << "&left=" << length
+                << "&compact=1";
+
+            std::string response = http_get(url.str());
+
+            json trackerResponse = decode_bencoded_value(response);
+            std::string peers = trackerResponse["peers"];
+
+            std::vector<std::string> peerList = parse_peers(peers);
+            for (const auto& peer : peerList)
+            {
+                std::cout << peer << std::endl;
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            return 1;
+        }
     }
     else {
 
