@@ -95,8 +95,7 @@ json decode_bencoded_dict(const std::string& encoded_value)
 {
     auto dict = nlohmann::ordered_map<json, json>();
     // skip the 'd'
-    std::string rest = encoded_value.substr(1);
-    while (rest[0] != 'e')
+    while (encoded_value[1] != 'e')
     {
         /*
         d<key1><value1>...<keyN><valueN>
@@ -106,8 +105,8 @@ json decode_bencoded_dict(const std::string& encoded_value)
         lexicographical order: a generalization of the alphabetical order of the dictionaries to sequences of ordered symbols or, 
         more generally, of elements of a totally ordered set. 
         */
-        auto key = decode_bencoded_value(rest);
-        auto value = decode_bencoded_value(rest);
+        auto key = decode_bencoded_value(encoded_value);
+        auto value = decode_bencoded_value(encoded_value);
         dict.push_back({key, value});
     }
     return json(dict);
