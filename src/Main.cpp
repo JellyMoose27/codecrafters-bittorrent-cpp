@@ -96,46 +96,52 @@ json decode_bencoded_value(const std::string& encoded_value)
 {
     if (std::isdigit(encoded_value[0]))
     {
+        // Example: "5:hello" -> "hello"
         return decode_bencoded_string(encoded_value);
     }
     else if (encoded_value[0] == 'i')
     {
+        // Example: "i45e" - > "45"
         return decode_bencoded_integer(encoded_value);
     }
     else if (encoded_value[0] == 'l')
     {
+        // Example: "l10:strawberryi559ee" -> "[strawberry, 559]"
         int index = 1;
         return decode_bencoded_list(encoded_value, index);
+    }
+    else if (encoded_value[0] == 'd')
+    {
+        // Example: "d3:foo3:bar5:helloi52ee" -> {"foo":"bar", "hello":"52"}
+        return decode_becoded_dict(encoded_value);
     }
     else
     {
         throw std::runtime_error("Unhandled encoded value: " + encoded_value);
     }
 }
-// std::pair<json, size_t> decode_bencoded_dictionary(const std::string& encoded_value) {
 
-//     std::map<json, json> map;
+json decode_becoded_dict(const std::string& encoded_value)
+{
+    auto dict = nlohmann::ordered_map<json, json>();
+    // skip the 'd'
+    std::string rest = encoded_value.substr(1);
+    while (rest[0] != 'e')
+    {
+        /*
+        d<key1><value1>...<keyN><valueN>
+        Example "d3:foo3:bare"
+        foo is key, bar is value
 
-//     size_t index = 1;
-
-//     while (encoded_value[index] != 'e') {
-
-//         auto [key, offset] = decode_bencoded_value(encoded_value.substr(index));
-
-//         index += offset;
-
-//         auto [value, another] = decode_bencoded_value(encoded_value.substr(index));
-
-//         index += another;
-
-//         map.insert(std::pair(key, value));
-
-//     }
-
-//     return std::pair(json(map), index + 1);
-
-// }
-
+        lexicographical order: a generalization of the alphabetical order of the dictionaries to sequences of ordered symbols or, 
+        more generally, of elements of a totally ordered set. 
+        */
+        auto key = decode_bencoded_value(rest);
+        auto value = decode_bencoded_value(rest);
+        dict.push_back({key, value});
+    }
+    return json(dict);
+}
 
 int main(int argc, char* argv[]) {
 
