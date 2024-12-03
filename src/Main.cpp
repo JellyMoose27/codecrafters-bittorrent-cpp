@@ -152,6 +152,7 @@ json decode_bencoded_value(const std::string& encoded_value, size_t& index)
             auto value = decode_bencoded_value(encoded_value, index);
             dict.push_back({key, value});
         }
+        index++;
         return json(dict);
     }
     else
