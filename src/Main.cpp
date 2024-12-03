@@ -223,13 +223,26 @@ void parse_torrent(const std::string& filePath)
     }
 }
 
+// Function to convert hexadecimal string to bytes
+std::vector<unsigned char> hexToBytes(const std::string& hex) {
+    std::vector<unsigned char> bytes;
+    for (size_t i = 0; i < hex.length(); i += 2) {
+        std::string byteString = hex.substr(i, 2);
+        unsigned char byte = static_cast<unsigned char>(strtol(byteString.c_str(), nullptr, 16));
+        bytes.push_back(byte);
+    }
+    return bytes;
+}
+
 // Function to encode info_hash in URL-encoded format
 std::string url_encode(const std::string& value) {
+    auto rawBytes = hexToBytes(value);
+
     std::ostringstream escaped;
     escaped.fill('0');
     escaped << std::hex;
 
-    for (char c : value) {
+    for (char c : rawBytes) {
         if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
             escaped << c;
         } else {
@@ -363,7 +376,7 @@ int main(int argc, char* argv[]) {
             int length = decoded_torrent["info"]["length"];
 
             // Contruct GET message
-            std::string peerID = "00112233445566778899";
+            std::string peerID = "01234567890123456789";
             std::ostringstream url;
             url << trackerURL << "?info_hash=" << urlEncodedHash
                 << "&peer_id=" << peerID
