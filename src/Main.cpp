@@ -97,6 +97,8 @@ json decode_bencoded_list(const std::string& encoded_value, size_t& index) {
     return json(list);
 }
 
+json decode_bencoded_value(const std::string& encoded_value, size_t& index);
+
 json decode_bencoded_value(const std::string &encoded_value) {
 
   size_t index = 0;
