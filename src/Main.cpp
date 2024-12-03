@@ -34,13 +34,16 @@ json decode_bencoded_string(const std::string& encoded_value) {
 
 }
 
-json decode_bencoded_integer(const std::string& encoded_value) {
-    size_t end_index = encoded_value.find('e');
+json decode_bencoded_integer(const std::string& encoded_value, size_t& index) {
+    size_t end_index = encoded_value.find('e', index);
     if (end_index != std::string::npos) {
 
-        std::string num = encoded_value.substr(1, end_index - 1);
+        std::string num = encoded_value.substr(index + 1, end_index - index - 1);
 
-        return json(stoll(num));
+        int64_t number = std::atoll(num.c_str());
+        index = end_index + 1;
+
+        return json(number);
 
     } else {
 
@@ -50,7 +53,9 @@ json decode_bencoded_integer(const std::string& encoded_value) {
 
 }
 
-json decode_bencoded_list(const std::string& encoded_value, int& index) {
+json decode_bencoded_list(const std::string& encoded_value, size_t& index) {
+    
+    index++;
 
     std::vector<json> list;
 
@@ -88,34 +93,50 @@ json decode_bencoded_list(const std::string& encoded_value, int& index) {
             index = end_idx + 1;
         }
     }
-
+    index++;
     return json(list);
 }
 
-json decode_bencoded_value(const std::string& encoded_value)
+json decode_bencoded_value(const std::string &encoded_value) {
+
+  size_t index = 0;
+
+  json res = decode_bencoded_value(encoded_value, index);
+
+  if (index != encoded_value.size()) {
+
+    throw std::runtime_error("String not fully consumed.");
+
+  }
+
+  return res;
+
+}
+
+json decode_bencoded_value(const std::string& encoded_value, size_t& index)
 {
-    if (std::isdigit(encoded_value[0]))
+    if (std::isdigit(encoded_value[index]))
     {
         // Example: "5:hello" -> "hello"
         return decode_bencoded_string(encoded_value);
     }
-    else if (encoded_value[0] == 'i')
+    else if (encoded_value[index] == 'i')
     {
         // Example: "i45e" - > "45"
-        return decode_bencoded_integer(encoded_value);
+        return decode_bencoded_integer(encoded_value, index);
     }
-    else if (encoded_value[0] == 'l')
+    else if (encoded_value[index] == 'l')
     {
         // Example: "l10:strawberryi559ee" -> "[strawberry, 559]"
-        int index = 1;
         return decode_bencoded_list(encoded_value, index);
     }
-    else if (encoded_value[0] == 'd')
+    else if (encoded_value[index] == 'd')
     {
+        index++;
         // Example: "d3:foo3:bar5:helloi52ee" -> {"foo":"bar", "hello":"52"}
         auto dict = nlohmann::ordered_map<json, json>();
         // skip the 'd'
-        while (encoded_value[1] != 'e')
+        while (encoded_value[index] != 'e')
         {
             /*
             d<key1><value1>...<keyN><valueN>
@@ -125,8 +146,8 @@ json decode_bencoded_value(const std::string& encoded_value)
             lexicographical order: a generalization of the alphabetical order of the dictionaries to sequences of ordered symbols or, 
             more generally, of elements of a totally ordered set. 
             */
-            auto key = decode_bencoded_value(encoded_value);
-            auto value = decode_bencoded_value(encoded_value);
+            auto key = decode_bencoded_value(encoded_value, index);
+            auto value = decode_bencoded_value(encoded_value, index);
             dict.push_back({key, value});
         }
         return json(dict);
