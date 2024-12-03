@@ -12,26 +12,6 @@
 
 using json = nlohmann::json;
 
-json decode_bencoded_value(const std::string& encoded_value)
-{
-    if (std::isdigit(encoded_value[0]))
-    {
-        return decode_bencoded_string(encoded_value);
-    }
-    else if (encoded_value[0] == 'i')
-    {
-        return decode_bencoded_integer(encoded_value);
-    }
-    else if (encoded_value[0] == 'l')
-    {
-        int index = 1;
-        return decode_bencoded_list(encoded_value, index);
-    }
-    else
-    {
-        throw std::runtime_error("Unhandled encoded value: " + encoded_value);
-    }
-}
 
 
 json decode_bencoded_string(const std::string& encoded_value) {
@@ -108,6 +88,26 @@ json decode_bencoded_list(const std::string& encoded_value, int& index) {
     return json(list);
 }
 
+json decode_bencoded_value(const std::string& encoded_value)
+{
+    if (std::isdigit(encoded_value[0]))
+    {
+        return decode_bencoded_string(encoded_value);
+    }
+    else if (encoded_value[0] == 'i')
+    {
+        return decode_bencoded_integer(encoded_value);
+    }
+    else if (encoded_value[0] == 'l')
+    {
+        int index = 1;
+        return decode_bencoded_list(encoded_value, index);
+    }
+    else
+    {
+        throw std::runtime_error("Unhandled encoded value: " + encoded_value);
+    }
+}
 // std::pair<json, size_t> decode_bencoded_dictionary(const std::string& encoded_value) {
 
 //     std::map<json, json> map;
