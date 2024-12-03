@@ -206,15 +206,23 @@ void parse_torrent(const std::string& filePath)
 
     // piece length
     int pieceLength = decoded_torrent["info"]["piece length"];
-
-    // piece
-    
     
     std::cout << "Tracker URL: " << trackerURL << std::endl;
     std::cout << "Length: " << length << std::endl;
     std::cout << "Info Hash: " << infoHash << std::endl;
     std::cout << "Piece Length: " << pieceLength << std::endl;
     std::cout << "Piece Hashes: " << std::endl;
+
+    for (std::size_t i = 0; i < decoded_torrent["info"]["pieces"].get<std::string>().length(); i += 20)
+    {
+        std::string piece = decoded_torrent["info"]["pieces"].get<std::string>().substr(i, 20);
+        std::stringstream ss;
+        for (unsigned char byte : piece)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << (int)byte;
+        }
+        std::cout << ss.str() << std::endl;
+    }
 }
 
 int main(int argc, char* argv[]) {
