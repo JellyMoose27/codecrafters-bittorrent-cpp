@@ -42,7 +42,7 @@ json decode_bencoded_integer(const std::string& encoded_value) {
     
     std::string int_s = encoded_value.substr(1, end_idx - 1);
 
-    return json(stoll(int_s));
+    return json(std::stoll(int_s));
 
 }
 
