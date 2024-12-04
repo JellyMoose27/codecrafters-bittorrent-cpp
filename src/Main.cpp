@@ -862,6 +862,9 @@ int main(int argc, char* argv[]) {
             int hashLength = 20; // SHA-1 hash length in bytes
             std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
             std::cout << "integrity started" << std::endl;
+            
+            std::cout << pieceHash << std::endl;
+            std::cout << expectedPieceHash << std::endl;
             if (pieceHash != expectedPieceHash)
             {
                 throw std::runtime_error("Piece hash mismatch");
