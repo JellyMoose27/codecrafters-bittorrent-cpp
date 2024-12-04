@@ -862,6 +862,7 @@ int main(int argc, char* argv[]) {
             std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
             std::cout << "Piece written" << std::endl;
             output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
+            std::cout << "Piece written" << std::endl;
             output.close();
         }
         catch(const std::exception& e)
