@@ -367,6 +367,23 @@ std::string calculateInfohash(std::string bencoded_info)
     return infoHash;
 }
 
+std::string hex_to_binary(const std::string& hex) {
+    if (hex.size() != 40) {
+        throw std::runtime_error("Invalid SHA1 hash length; expected 40 hex characters.");
+    }
+
+    std::string binary;
+    binary.reserve(20); // 40 hex characters = 20 bytes binary
+
+    for (size_t i = 0; i < hex.size(); i += 2) {
+        // Convert each pair of hex characters to a single byte
+        unsigned char byte = std::stoul(hex.substr(i, 2), nullptr, 16);
+        binary.push_back(static_cast<char>(byte));
+    }
+
+    return binary;
+}
+
 struct Handshake
 {
     uint8_t length;
@@ -570,7 +587,8 @@ int main(int argc, char* argv[]) {
             
             // calculate the info hash
             std::string infoHash = calculateInfohash(bencoded_info);
-            std::cout << infoHash << std::endl;
+            std::string binaryInfoHash = hex_to_binary(infoHash);
+            std::cout << binaryInfoHash << std::endl;
 
             std::string peerID = "00112233445566778899";
 
