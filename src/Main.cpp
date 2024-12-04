@@ -544,7 +544,7 @@ int main(int argc, char* argv[]) {
             sha1.update(bencoded_info);
             std::string infoHash = sha1.final();
 
-            std::string peerID = "01234567890123456789";
+            std::string peerID = "00112233445566778899";
 
             /*
             1. length of the protocol string (BitTorrent protocol) which is 19 (1 byte)
