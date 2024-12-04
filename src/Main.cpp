@@ -6,6 +6,15 @@
 #include <fstream>
 #include <array>
 #include <curl/curl.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#pragma comment(lib, "ws2_32.lib") // Link Winsock library
+#else
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#define closesocket close
+#endif
 #include "lib/nlohmann/json.hpp"
 #include "lib/sha1.hpp"
 
@@ -305,6 +314,14 @@ std::vector<std::string> parse_peers(const std::string& peers) {
 }
 
 int connect_to_peer(const std::string &ip, int port) {
+    #ifdef _WIN32
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed" << std::endl;
+        return -1;
+    }
+    #endif
+
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("Socket creation failed");
@@ -543,7 +560,7 @@ int main(int argc, char* argv[]) {
             send(sockfd, handshakeMessage.c_str(), handshakeMessage.size(), 0);
 
             char response[68];
-            SSIZE_T bytesRead = recv(sockfd, response, sizeof(response), 0);
+            ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
             if (bytesRead != 68)
             {
                 throw std::runtime_error("Invalid handshake response");
