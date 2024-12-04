@@ -570,6 +570,7 @@ int main(int argc, char* argv[]) {
             
             // calculate the info hash
             std::string infoHash = calculateInfohash(bencoded_info);
+            std::cout << infoHash << std::endl;
 
             std::string peerID = "00112233445566778899";
 
