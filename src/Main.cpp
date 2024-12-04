@@ -443,10 +443,15 @@ std::vector<uint8_t> receive_message(int sockfd)
 
     // Read the payload (can ignore this for now)
     std::vector<uint8_t> buffer(length);
-    if (recv(sockfd, buffer.data(), length, 0) != length)
-    {
-        throw std::runtime_error("Failed to read payload");
+
+    size_t totalBytesRead = 0;
+    while (totalBytesRead < length) {
+    ssize_t bytesRead = recv(sockfd, buffer.data() + totalBytesRead, length - totalBytesRead, 0);
+    if (bytesRead <= 0) {
+        throw std::runtime_error("Failed to read payload: Connection lost or incomplete data");
     }
+    totalBytesRead += bytesRead;
+}
     return buffer;
 }
 
