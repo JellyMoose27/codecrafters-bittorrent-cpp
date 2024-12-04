@@ -858,6 +858,7 @@ int main(int argc, char* argv[]) {
 
             // Verify integrity
             std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
+            std::cout << "starting integrity" << std::endl;
             std::string expectedPieceHash = decoded_torrent["info"]["pieces"][piece_index].get<std::string>();
             if (pieceHash != expectedPieceHash)
             {
