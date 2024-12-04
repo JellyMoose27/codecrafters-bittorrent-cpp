@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <array>
+#include <cstring>
 #include <curl/curl.h>
 #ifdef _WIN32
 #include <winsock2.h>
@@ -548,7 +549,6 @@ int main(int argc, char* argv[]) {
             sha1.update(bencoded_info);
             std::string infoHash = sha1.final();
 
-
             std::string peerID = "01234567890123456789";
 
             /*
@@ -562,22 +562,31 @@ int main(int argc, char* argv[]) {
 
             5. peer id (20 bytes) (generate 20 random byte values)
             */
-            std::string handshakeMessage;
-            handshakeMessage += static_cast<char>(19);
-            handshakeMessage += "BitTorrent protocol";
-            handshakeMessage += std::string(8, '\0'); 
-            handshakeMessage += infoHash;
-            handshakeMessage += peerID;
+            // std::string handshakeMessage;
+            // handshakeMessage += static_cast<char>(19);
+            // handshakeMessage += "BitTorrent protocol";
+            // handshakeMessage += std::string(8, '\0'); 
+            // handshakeMessage += infoHash;
+            // handshakeMessage += peerID;
+            std::vector<char> handshakeMessage(68, '\0');
+            handshakeMessage[0] = 19;
+            strcpy(handshakeMessage.data() + 1, "BitTorrent protocol");
+            std::memcpy(handshakeMessage.data() + 1 + 19, infoHash.data(), 20);
+            std::memcpy(handshakeMessage.data() + 1 + 19 + 20, peerID.data(), 20);
 
             std::cout << infoHash << std::endl;
             std::cout << peerID << std::endl;
             std::cout << peerPort << std::endl;
-            std::cout << handshakeMessage << std::endl;
+            std::cout << "Handshake Message: ";
+            for (char byte : handshakeMessage) {
+                printf("%02x", static_cast<unsigned char>(byte));
+            }
+            std::cout << std::endl;
 
             // Step 1: Establish TCP connection with the peer
             int sockfd = connect_to_peer(peerIP, peerPort);
 
-            send(sockfd, handshakeMessage.c_str(), handshakeMessage.size(), 0);
+            send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0);
 
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
