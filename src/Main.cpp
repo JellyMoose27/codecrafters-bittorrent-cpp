@@ -841,7 +841,8 @@ int main(int argc, char* argv[]) {
 
             // Verify integrity
             std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
-            if (pieceHash != decoded_torrent["info"]["pieces"][piece_index])
+            std::string expectedPieceHash = decoded_torrent["info"]["pieces"][piece_index].get<std::string>();
+            if (pieceHash != expectedPieceHash)
             {
                 throw std::runtime_error("Piece hash mismatch");
             }
