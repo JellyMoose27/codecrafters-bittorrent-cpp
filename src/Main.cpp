@@ -442,11 +442,11 @@ std::vector<uint8_t> receive_message(int sockfd)
     length = ntohl(length);
 
     // Read the payload (can ignore this for now)
-    std::vector<uint8_t> buffer(length);
-    if (recv(sockfd, buffer.data(), length, 0) != length)
-    {
-        throw std::runtime_error("Failed to read payload");
-    }
+    // std::vector<uint8_t> buffer(length);
+    // if (recv(sockfd, buffer.data(), length, 0) != length)
+    // {
+    //     throw std::runtime_error("Failed to read payload");
+    // }
     return buffer;
 }
 
@@ -832,7 +832,7 @@ int main(int argc, char* argv[]) {
 
             while (received_blocks < pieceLength)
             {
-                std::vector<uint8_t> message = receive_message(sockfd);
+                std::vector<uint8_t> message = receive_message(sockfd); //receive failure
                 if (message[0] != MessageType::piece)
                 {
                     throw std::runtime_error("Expected piece message");
