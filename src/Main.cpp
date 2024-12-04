@@ -468,6 +468,8 @@ void request_block(int sockfd, int index, int begin, int length)
     uint32_t index_n = htonl(index);    //Piece index
     uint32_t begin_n = htonl(begin);    //Block start offset
     uint32_t length_n = htonl(length);  //Block length
+
+    // All later integers sent in the protocol are encoded as four bytes big-endian.
     std::memcpy(&payload[0], &index_n, 4);
     std::memcpy(&payload[4], &begin_n, 4);
     std::memcpy(&payload[8], &length_n, 4);
@@ -793,8 +795,12 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Expected bitfield message");
             }
 
+            std::cout << "Bitfield received" << std::endl;
+
             // Send interested message
             send_message(sockfd, MessageType::interested);
+
+            std::cout << "Interested sent" << std::endl;
 
             // Receive unchoke message
             std::vector<uint8_t> unchoke = receive_message(sockfd);
@@ -802,6 +808,8 @@ int main(int argc, char* argv[]) {
             {
                 throw std::runtime_error("Expected unchoke message");
             }
+
+            std::cout << "Unchoke received" << std::endl;
 
             // Send request message
             // Divide piece into blocks and request each blocks
@@ -815,6 +823,8 @@ int main(int argc, char* argv[]) {
                 int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
                 request_block(sockfd, piece_index, begin, block_length);
             }
+
+            std::cout << "Request sent" << std::endl;
 
             // Receive piece message for each block requested
             std::vector<uint8_t> pieceData(pieceLength);
@@ -838,6 +848,8 @@ int main(int argc, char* argv[]) {
                 std::memcpy(&pieceData[begin], block, blockLength);
                 received_blocks += blockLength;
             }
+
+            std::cout << "Piece received" << std::endl;
 
             // Verify integrity
             std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
