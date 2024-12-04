@@ -608,12 +608,6 @@ int main(int argc, char* argv[]) {
             Handshake handshake(binaryInfoHash, peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
 
-            std::cout << "Sent Binary Infohash (Handshake): ";
-            for (size_t i = 28; i < 48; ++i) {
-                printf("%02x", static_cast<unsigned char>(handshakeMessage[i]));
-            }
-            std::cout << std::endl;
-
             // std::cout << infoHash << std::endl;
             // std::cout << peerID << std::endl;
             // std::cout << peerPort << std::endl;
@@ -636,6 +630,20 @@ int main(int argc, char* argv[]) {
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
             std::string receivedInfohash = std::string(response + 28, 20);
+
+            std::cout << "Sent Binary Infohash: ";
+            for (unsigned char c : binaryInfoHash) {
+                printf("%02x", c);
+            }
+            std::cout << std::endl;
+
+            std::cout << "Received Binary Infohash: ";
+            for (unsigned char c : receivedInfohash) {
+                printf("%02x", static_cast<unsigned char>(c));
+            }
+            std::cout << std::endl;
+
+            
             if (bytesRead != 68)
             {
                 closesocket(sockfd);
