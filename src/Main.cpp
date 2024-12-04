@@ -629,6 +629,12 @@ int main(int argc, char* argv[]) {
             // Step 3: Receive the handshake response
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
+            std::string receivedInfohash = std::string(response + 28, 20);
+            std::cout << "Received Infohash (Binary): ";
+            for (unsigned char c : receivedInfohash) {
+                printf("%02x", static_cast<unsigned char>(c));
+            }
+            std::cout << std::endl;
             if (bytesRead != 68)
             {
                 closesocket(sockfd);
