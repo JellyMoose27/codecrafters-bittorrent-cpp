@@ -9,6 +9,8 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib") // Link Winsock library
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t; // Define ssize_t for Wind
 #else
 #include <sys/socket.h>
 #include <arpa/inet.h>
