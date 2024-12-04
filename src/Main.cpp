@@ -879,7 +879,7 @@ int main(int argc, char* argv[]) {
                     }
 
                     // Write piece to disk
-                    std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
+                    std::ofstream output(argv[3]);
                     output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
                     output.close();
 
