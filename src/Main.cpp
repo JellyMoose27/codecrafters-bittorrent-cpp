@@ -347,14 +347,14 @@ int connect_to_peer(const std::string &ip, int port) {
     return sockfd;
 }   
 
-std::string generate_random_peer_id() {
-    std::string peerID;
-    srand(time(0));
-    for (int i = 0; i < 20; ++i) {
-        peerID += static_cast<char>(rand() % 256);
-    }
-    return peerID;
-}
+// std::string generate_random_peer_id() {
+//     std::string peerID;
+//     srand(time(0));
+//     for (int i = 0; i < 20; ++i) {
+//         peerID += static_cast<char>(rand() % 256);
+//     }
+//     return peerID;
+// }
 
 // Function to validate the handshake response
 void validate_handshake(const std::string& response, const std::string& expected_infohash) {
@@ -548,6 +548,8 @@ int main(int argc, char* argv[]) {
             sha1.update(bencoded_info);
             std::string infoHash = sha1.final();
             std::string encodedHash = url_encode(infoHash);
+
+            std::cout << encodedHash << std::endl;
 
             std::string peerID = "01234567890123456789";
 
