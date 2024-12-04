@@ -317,6 +317,7 @@ std::vector<std::string> parse_peers(const std::string& peers) {
     return result;
 }
 
+// Establish connection to the peer
 int connect_to_peer(const std::string &ip, int port) {
     #ifdef _WIN32
     WSADATA wsaData;
@@ -357,6 +358,11 @@ void validate_handshake(const std::string& response, const std::string& expected
         throw std::runtime_error("Invalid handshake response: Infohash mismatch");
     }
 
+    /*
+    Remember to convert back to hexadecimal for human readable output
+    Prints the hexadecimal value of the Peer ID of the Peer that we (the client) connected to
+    Example: received_peer_id: 3030313132323333343435353636373738383939 -> peer_id: 116494218e909827af98a36137026979dabbdcb9
+    */
     std::string receivedPeerID(response.substr(48, 20));
     std::cout << "Peer ID: " << bytes_to_hex(receivedPeerID) << std::endl;
 }
@@ -369,6 +375,7 @@ std::string calculateInfohash(std::string bencoded_info)
     return infoHash;
 }
 
+// Convert hexadecimal to binary (for InfoHash)
 std::string hex_to_binary(const std::string& hex) {
     if (hex.size() != 40) {
         throw std::runtime_error("Invalid SHA1 hash length; expected 40 hex characters.");
@@ -489,6 +496,7 @@ int main(int argc, char* argv[]) {
             // length
             int length = decoded_torrent["info"]["length"];
 
+            // Parse the torrent
             // Contruct GET message
             /*
             
@@ -588,6 +596,7 @@ int main(int argc, char* argv[]) {
             std::string binaryInfoHash = hex_to_binary(infoHash);
             // std::cout << binaryInfoHash << std::endl;
 
+            // Peer ID of YOUR client
             std::string peerID = "00112233445566778899";
 
             /*
@@ -603,15 +612,6 @@ int main(int argc, char* argv[]) {
             */
             Handshake handshake(binaryInfoHash, peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
-
-            // std::cout << infoHash << std::endl;
-            // std::cout << peerID << std::endl;
-            // std::cout << peerPort << std::endl;
-            // std::cout << "Handshake Message: ";
-            // for (char byte : handshakeMessage) {
-            //     printf("%02x", static_cast<unsigned char>(byte));
-            // }
-            // std::cout << std::endl;
 
             // Step 1: Establish TCP connection with the peer
             int sockfd = connect_to_peer(peerIP, peerPort);
@@ -632,6 +632,10 @@ int main(int argc, char* argv[]) {
             }
 
             // Step 4: Validate the handshake response
+            /*
+            Note: the info hash in the handshake message is a binary value, not hexadecimal
+            Therefore, the function must use the binary value to check for mismatch
+            */ 
             validate_handshake(std::string(response, 68), binaryInfoHash);
 
             // close the socket
