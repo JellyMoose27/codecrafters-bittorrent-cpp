@@ -246,12 +246,13 @@ std::vector<unsigned char> hexToBytes(const std::string& hex) {
 }
 
 std::string bytes_to_hex(const std::string &bytes) {
-    std::ostringstream hexStream;
-    hexStream << std::hex << std::setfill('0');
+    std::ostringstream hex;
+    hex.fill('0');
+    hex << std::hex;
     for (unsigned char c : bytes) {
-        hexStream << std::setw(2) << static_cast<int>(c);
+        hex << std::setw(2) << static_cast<int>(c);
     }
-    return hexStream.str();
+    return hex.str();
 }
 
 // Function to encode info_hash in URL-encoded format
