@@ -547,6 +547,7 @@ int main(int argc, char* argv[]) {
             SHA1 sha1;
             sha1.update(bencoded_info);
             std::string infoHash = sha1.final();
+            std::string encodedHash = url_encode(infoHash);
 
             std::string peerID = "01234567890123456789";
 
@@ -565,7 +566,7 @@ int main(int argc, char* argv[]) {
             handshakeMessage += static_cast<char>(19);
             handshakeMessage += "BitTorrent protocol";
             handshakeMessage += std::string(8, '\0'); 
-            handshakeMessage += infoHash;
+            handshakeMessage += encodedHash;
             handshakeMessage += peerID;
 
             // Step 1: Establish TCP connection with the peer
@@ -581,7 +582,7 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Invalid handshake response");
             }
 
-            validate_handshake(std::string(response, 68), infoHash);
+            validate_handshake(std::string(response, 68), encodedHash);
 
             closesocket(sockfd);
         }
@@ -589,17 +590,10 @@ int main(int argc, char* argv[]) {
         {
             std::cerr << e.what() << '\n';
         }
-        
-        
     }
     else {
-
         std::cerr << "unknown command: " << command << std::endl;
-
         return 1;
-
     }
-
     return 0;
-
 }
