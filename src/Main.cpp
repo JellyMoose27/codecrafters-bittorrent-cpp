@@ -557,12 +557,6 @@ int main(int argc, char* argv[]) {
 
             5. peer id (20 bytes) (generate 20 random byte values)
             */
-            // std::string handshakeMessage;
-            // handshakeMessage += static_cast<char>(19);
-            // handshakeMessage += "BitTorrent protocol";
-            // handshakeMessage += std::string(8, '\0'); 
-            // handshakeMessage += infoHash;
-            // handshakeMessage += peerID;
             std::vector<char> handshakeMessage(68, '\0');
             handshakeMessage[0] = 19;
             strcpy(handshakeMessage.data() + 1, "BitTorrent protocol");
@@ -570,14 +564,14 @@ int main(int argc, char* argv[]) {
             std::memcpy(handshakeMessage.data() + 1 + 19 + 8, infoHash.data(), 20);
             std::memcpy(handshakeMessage.data() + 1 + 19 + 8 + 20, peerID.data(), 20);
 
-            std::cout << infoHash << std::endl;
-            std::cout << peerID << std::endl;
-            std::cout << peerPort << std::endl;
-            std::cout << "Handshake Message: ";
-            for (char byte : handshakeMessage) {
-                printf("%02x", static_cast<unsigned char>(byte));
-            }
-            std::cout << std::endl;
+            // std::cout << infoHash << std::endl;
+            // std::cout << peerID << std::endl;
+            // std::cout << peerPort << std::endl;
+            // std::cout << "Handshake Message: ";
+            // for (char byte : handshakeMessage) {
+            //     printf("%02x", static_cast<unsigned char>(byte));
+            // }
+            // std::cout << std::endl;
 
             // Step 1: Establish TCP connection with the peer
             int sockfd = connect_to_peer(peerIP, peerPort);
