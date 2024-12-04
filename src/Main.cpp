@@ -549,6 +549,7 @@ int main(int argc, char* argv[]) {
             std::string infoHash = sha1.final();
             std::string encodedHash = url_encode(infoHash);
 
+            std::cout << infoHash << std::endl;
             std::cout << encodedHash << std::endl;
 
             std::string peerID = "01234567890123456789";
