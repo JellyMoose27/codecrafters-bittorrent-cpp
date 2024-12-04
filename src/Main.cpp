@@ -357,6 +357,8 @@ void validate_handshake(const std::string& response, const std::string& expected
         throw std::runtime_error("Invalid handshake response: Infohash mismatch");
     }
 
+    std::string receivedPeerID(response.substr(48, 20));
+    std::cout << "Peer ID: " << receivedPeerID << std::endl;
 }
 
 std::string calculateInfohash(std::string bencoded_info)
