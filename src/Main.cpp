@@ -335,12 +335,9 @@ int connect_to_peer(const std::string &ip, int port) {
     sockaddr_in serverAddr{};
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
-    if (inet_pton(AF_INET, ip.c_str(), &serverAddr.sin_addr) <= 0) {
-        closesocket(sockfd);
-        throw std::runtime_error("Invalid peer IP address");
-    }
+    serverAddr.sin_addr.s_addr = inet_addr(ip.c_str());
 
-    if (connect(sockfd, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) < 0) {
+    if (connect(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         closesocket(sockfd);
         throw std::runtime_error("Failed to connect to peer");
     }
@@ -368,8 +365,6 @@ void validate_handshake(const std::string& response, const std::string& expected
         throw std::runtime_error("Invalid handshake response: Infohash mismatch");
     }
 
-    std::string peerID = response.substr(48, 20);
-    std::cout << "Peer ID: " << bytes_to_hex(peerID) << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -587,8 +582,10 @@ int main(int argc, char* argv[]) {
             // Step 1: Establish TCP connection with the peer
             int sockfd = connect_to_peer(peerIP, peerPort);
 
-            send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0);
-
+            if (send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0) == -1) {
+                closesocket(sockfd);
+                throw std::runtime_error("Failed to send handshake message");
+            }
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
             if (bytesRead != 68)
