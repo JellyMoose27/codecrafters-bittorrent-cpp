@@ -758,7 +758,6 @@ int main(int argc, char* argv[]) {
             Handshake handshake(binaryInfoHash, peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
             
-            std::vector<std::string> peerList = parse_peers(peers);
             for (const auto& peer : peerList)
             {
                 std::cout << peer << std::endl;
