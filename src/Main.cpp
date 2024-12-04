@@ -537,7 +537,7 @@ int main(int argc, char* argv[]) {
             std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
             SHA1 sha1;
             sha1.update(bencoded_info);
-            std::string infoHash = sha1.final();
+            std::string infoHash = sha1.digest();
 
             std::string peerID = generate_random_peer_id();
 
