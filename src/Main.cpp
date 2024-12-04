@@ -803,8 +803,6 @@ int main(int argc, char* argv[]) {
             // Send interested message
             send_message(sockfd, MessageType::interested);
 
-            std::cout << "Interested sent" << std::endl;
-
             // Receive unchoke message
             std::vector<uint8_t> unchoke = receive_message(sockfd);
             if (unchoke[0] != MessageType::unchoke)
