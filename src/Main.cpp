@@ -758,121 +758,150 @@ int main(int argc, char* argv[]) {
             Handshake handshake(binaryInfoHash, peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
             
-            for (const auto& peer : peerList)
-            {
-                std::cout << peer << std::endl;
-            }
+            if (peerList.empty()) {
+                throw std::runtime_error("No peers available for connection");
+            }           
 
-            std::string peerInfo = peerList[0];
-            size_t colon_index = peerInfo.find(':');
-            if (colon_index == std::string::npos)
-            {
-                throw std::runtime_error("Invalid peer address format");
-            }
-            std::string peerIP = peerInfo.substr(0, colon_index);
-            int peerPort = std::stoi(peerInfo.substr(colon_index + 1));
-
-            // Step 1: Establish TCP connection with the peer
-            int sockfd = connect_to_peer(peerIP, peerPort);
-
-            // Step 2: Send handshake message
-            if (send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0) == -1) {
-                closesocket(sockfd);
-                throw std::runtime_error("Failed to send handshake message");
-            }
-
-            // Step 3: Receive the handshake response
-            char response[68];
-            ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
-            if (bytesRead != 68)
-            {
-                closesocket(sockfd);
-                throw std::runtime_error("Invalid handshake response");
-            }
-
-            // Step 4: Validate the handshake response
-            std::string received_infohash = std::string(response, 68).substr(28, 20);
-            if (received_infohash != binaryInfoHash) {
-                throw std::runtime_error("Invalid handshake response: Infohash mismatch");
-            }
-
-            std::cout << "Handshake established" << std::endl;
-            // Exchange multiple peer messages to download the file
-            // TODO
-            // Receive bitfield message
-            std::vector<uint8_t> bitfield = receive_message(sockfd);
-            if (bitfield[0] != MessageType::bitfield)
-            {
-                throw std::runtime_error("Expected bitfield message");
-            }
-
-            // Send interested message
-            send_message(sockfd, MessageType::interested);
-
-            // Receive unchoke message
-            std::vector<uint8_t> unchoke = receive_message(sockfd);
-            if (unchoke[0] != MessageType::unchoke)
-            {
-                throw std::runtime_error("Expected unchoke message");
-            }
-
-            // Send request message
-            // Divide piece into blocks and request each blocks
             // Piece index from command line
             // "./your_bittorrent.sh download_piece -o /tmp/test-piece sample.torrent <piece_index>"
             int piece_index = std::stoi(argv[5]);
             int pieceLength = decoded_torrent["info"]["piece length"];
+            bool pieceDownloaded = false;
 
-            for (int begin = 0; begin < pieceLength; begin += PIECE_BLOCK)
+            for (const auto& peerInfo : peerList)
             {
-                int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
-                request_block(sockfd, piece_index, begin, block_length);
-            }
-
-            // Receive piece message for each block requested
-            std::vector<uint8_t> pieceData(pieceLength);
-            int received_blocks = 0;
-
-            while (received_blocks < pieceLength)
-            {
-                std::vector<uint8_t> message = receive_message(sockfd); //receive failure
-                if (message[0] != MessageType::piece)
+                try
                 {
-                    throw std::runtime_error("Expected piece message");
+                    size_t colon_index = peerInfo.find(':');
+                    if (colon_index == std::string::npos)
+                    {
+                        throw std::runtime_error("Invalid peer address format");
+                    }
+                    std::string peerIP = peerInfo.substr(0, colon_index);
+                    int peerPort = std::stoi(peerInfo.substr(colon_index + 1));
+
+                    // Step 1: Establish TCP connection with the peer
+                    int sockfd = connect_to_peer(peerIP, peerPort);
+
+                    // Step 2: Send handshake message
+                    if (send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0) == -1) {
+                        closesocket(sockfd);
+                        throw std::runtime_error("Failed to send handshake message");
+                    }
+
+                    // Step 3: Receive the handshake response
+                    char response[68];
+                    ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
+                    if (bytesRead != 68)
+                    {
+                        closesocket(sockfd);
+                        throw std::runtime_error("Invalid handshake response");
+                    }
+
+                    // Step 4: Validate the handshake response
+                    std::string received_infohash = std::string(response, 68).substr(28, 20);
+                    if (received_infohash != binaryInfoHash) {
+                        throw std::runtime_error("Invalid handshake response: Infohash mismatch");
+                    }
+                    std::cout << "Handshake established" << std::endl;
+
+                    // Exchange multiple peer messages to download the file
+                    // TODO
+                    // Receive bitfield message
+                    std::vector<uint8_t> bitfield = receive_message(sockfd);
+                    if (bitfield[0] != MessageType::bitfield)
+                    {
+                        throw std::runtime_error("Expected bitfield message");
+                    }
+
+                    int byteIndex = piece_index / 8;
+                    int bitIndex = piece_index % 8;
+                    if (byteIndex >= bitfield.size() - 1 || !(bitfield[byteIndex + 1] & (1 << (7 - bitIndex)))) {
+                        std::cout << "Peer does not have the requested piece" << std::endl;
+                        closesocket(sockfd);
+                        continue;
+                    }
+
+                    std::cout << "Peer has the requested piece. Initiating download..." << std::endl;
+
+                    // Send interested message
+                    send_message(sockfd, MessageType::interested);
+
+                    // Receive unchoke message
+                    std::vector<uint8_t> unchoke = receive_message(sockfd);
+                    if (unchoke[0] != MessageType::unchoke)
+                    {
+                        throw std::runtime_error("Expected unchoke message");
+                    }
+
+                    // Send request message
+                    // Divide piece into blocks and request each blocks
+                    
+
+                    for (int begin = 0; begin < pieceLength; begin += PIECE_BLOCK)
+                    {
+                        int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
+                        request_block(sockfd, piece_index, begin, block_length);
+                    }
+
+                    // Receive piece message for each block requested
+                    std::vector<uint8_t> pieceData(pieceLength);
+                    int received_blocks = 0;
+
+                    while (received_blocks < pieceLength)
+                    {
+                        std::vector<uint8_t> message = receive_message(sockfd);
+                        if (message[0] != MessageType::piece)
+                        {
+                            throw std::runtime_error("Expected piece message");
+                        }
+
+                        // Extract piece data
+                        int index = ntohl(*reinterpret_cast<int*>(&message[1]));
+                        int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
+                        const uint8_t* block = &message[9];
+                        int blockLength = message.size() - 9;
+
+                        // Save the block data
+                        std::memcpy(&pieceData[begin], block, blockLength);
+                        received_blocks += blockLength;
+                    }
+
+                    // Verify integrity
+                    std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
+                    pieceHash = hex_to_binary(pieceHash);
+                    int hashLength = 20; // SHA-1 hash length in bytes
+                    std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
+                    
+                    if (pieceHash != expectedPieceHash)
+                    {
+                        throw std::runtime_error("Piece hash mismatch");
+                    }
+
+                    // Write piece to disk
+                    std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
+                    output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
+                    output.close();
+
+                    std::cout << "Piece downloaded successfully" << std::endl;
+                    pieceDownloaded = true;
+                    closesocket(sockfd);
+                    break; // Exit the loop once the piece is downloaded
+                }   
+                catch (const std::exception& e)
+                {
+                    std::cerr << "Error with peer: " << e.what() << std::endl;
+                    continue;
                 }
-
-                // Extract piece data
-                int index = ntohl(*reinterpret_cast<int*>(&message[1]));
-                int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
-                const uint8_t* block = &message[9];
-                int blockLength = message.size() - 9;
-
-                // Save the block data
-                std::memcpy(&pieceData[begin], block, blockLength);
-                received_blocks += blockLength;
             }
-
-            // Verify integrity
-            std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
-            pieceHash = hex_to_binary(pieceHash);
-            int hashLength = 20; // SHA-1 hash length in bytes
-            std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
-            
-            if (pieceHash != expectedPieceHash)
-            {
-                throw std::runtime_error("Piece hash mismatch");
+            if (!pieceDownloaded) {
+                throw std::runtime_error("Failed to download the requested piece from any peer");
             }
-
-            // Write piece to disk
-            std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
-            output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
-            output.close();
         }
         catch(const std::exception& e)
         {
             std::cerr << e.what() << '\n';
         }
-        
     }
     else {
         std::cerr << "unknown command: " << command << std::endl;
