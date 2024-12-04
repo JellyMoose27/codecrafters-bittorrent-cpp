@@ -758,6 +758,12 @@ int main(int argc, char* argv[]) {
             Handshake handshake(binaryInfoHash, peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
             
+            std::vector<std::string> peerList = parse_peers(peers);
+            for (const auto& peer : peerList)
+            {
+                std::cout << peer << std::endl;
+            }
+
             std::string peerInfo = peerList[0];
             size_t colon_index = peerInfo.find(':');
             if (colon_index == std::string::npos)
@@ -791,6 +797,7 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Invalid handshake response: Infohash mismatch");
             }
 
+            std::cout << "Handshake established" << std::endl;
             // Exchange multiple peer messages to download the file
             // TODO
             // Receive bitfield message
@@ -858,11 +865,8 @@ int main(int argc, char* argv[]) {
             }
 
             // Write piece to disk
-            std::cout << "Attempting to write piece" << std::endl;
             std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
-            std::cout << "Piece written" << std::endl;
             output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
-            std::cout << "Piece written" << std::endl;
             output.close();
         }
         catch(const std::exception& e)
