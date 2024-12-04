@@ -345,14 +345,6 @@ int connect_to_peer(const std::string &ip, int port) {
     return sockfd;
 }   
 
-// std::string generate_random_peer_id() {
-//     std::string peerID;
-//     srand(time(0));
-//     for (int i = 0; i < 20; ++i) {
-//         peerID += static_cast<char>(rand() % 256);
-//     }
-//     return peerID;
-// }
 
 // Function to validate the handshake response
 void validate_handshake(const std::string& response, const std::string& expected_infohash) {
@@ -366,6 +358,38 @@ void validate_handshake(const std::string& response, const std::string& expected
     }
 
 }
+
+std::string calculateInfohash(std::string bencoded_info)
+{
+    SHA1 sha1;
+    sha1.update(bencoded_info);
+    std::string infoHash = sha1.final();
+    return infoHash;
+}
+
+struct Handshake
+{
+    uint8_t length;
+    char protocol[19];
+    uint8_t reservedBytes[8];
+    char infoHash[20];
+    char peerID[20];
+
+    Handshake(const std::string& infoHashS, const std::string& peerIDS)
+    {
+        length = 19;
+        std::memcpy(protocol, "BitTorrent protocol", 19);
+        std::memset(reservedBytes, 0, 8);
+        std::memcpy(infoHash, infoHashS.data(), 20);
+        std::memcpy(peerID, peerIDS.data(), 20);
+    }
+
+    std::vector<char> toVector() const {
+        std::vector<char> handshakeVector(sizeof(Handshake), 0);
+        std::memcpy(handshakeVector.data(), this, sizeof(Handshake));
+        return handshakeVector;
+    }
+};
 
 int main(int argc, char* argv[]) {
 
@@ -436,9 +460,7 @@ int main(int argc, char* argv[]) {
             std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
 
             // calculate the info hash
-            SHA1 sha1;
-            sha1.update(bencoded_info);
-            std::string infoHash = sha1.final();
+            std::string infoHash = calculateInfohash(bencoded_info);
             std::string urlEncodedHash = url_encode(infoHash);
 
             // announceURL
@@ -535,14 +557,14 @@ int main(int argc, char* argv[]) {
             std::string peerIP = peerInfo.substr(0, colon_index);
             int peerPort = std::stoi(peerInfo.substr(colon_index + 1));
 
+            // read the file 
+            // bencode the torrent
             std::string fileContent = read_file(filePath);
             json decoded_torrent = decode_bencoded_value(fileContent);
             std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
-
-            // bencode the torrent
-            SHA1 sha1;
-            sha1.update(bencoded_info);
-            std::string infoHash = sha1.final();
+            
+            // calculate the info hash
+            std::string infoHash = calculateInfohash(bencoded_info);
 
             std::string peerID = "00112233445566778899";
 
@@ -557,12 +579,8 @@ int main(int argc, char* argv[]) {
 
             5. peer id (20 bytes) (generate 20 random byte values)
             */
-            std::vector<char> handshakeMessage(68, '\0');
-            handshakeMessage[0] = 19;
-            strcpy(handshakeMessage.data() + 1, "BitTorrent protocol");
-            std::memset(handshakeMessage.data() + 1 + 19, 0, 8);  // reserved (8 bytes)
-            std::memcpy(handshakeMessage.data() + 1 + 19 + 8, infoHash.data(), 20);
-            std::memcpy(handshakeMessage.data() + 1 + 19 + 8 + 20, peerID.data(), 20);
+            Handshake handshake(infoHash, peerID);
+            std::vector<char> handshakeMessage = handshake.toVector();
 
             // std::cout << infoHash << std::endl;
             // std::cout << peerID << std::endl;
@@ -576,10 +594,13 @@ int main(int argc, char* argv[]) {
             // Step 1: Establish TCP connection with the peer
             int sockfd = connect_to_peer(peerIP, peerPort);
 
+            // Step 2: Send handshake message
             if (send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0) == -1) {
                 closesocket(sockfd);
                 throw std::runtime_error("Failed to send handshake message");
             }
+
+            // Step 3: Receive the handshake response
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
             if (bytesRead != 68)
@@ -588,8 +609,10 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Invalid handshake response");
             }
 
+            // Step 4: Validate the handshake response
             validate_handshake(std::string(response, 68), infoHash);
 
+            // close the socket
             closesocket(sockfd);
         }
         catch(const std::exception& e)
