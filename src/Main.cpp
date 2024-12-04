@@ -442,7 +442,7 @@ std::vector<uint8_t> receive_message(int sockfd)
     length = ntohl(length);
 
     // Read the payload (can ignore this for now)
-    // std::vector<uint8_t> buffer(length);
+    std::vector<uint8_t> buffer(length);
     // if (recv(sockfd, buffer.data(), length, 0) != length)
     // {
     //     throw std::runtime_error("Failed to read payload");
