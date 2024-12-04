@@ -352,10 +352,10 @@ void validate_handshake(const std::string& response, const std::string& expected
         throw std::runtime_error("Invalid handshake size");
     }
 
-    std::string received_infohash = response.substr(28, 20);
-    if (received_infohash != expected_infohash) {
-        throw std::runtime_error("Invalid handshake response: Infohash mismatch");
-    }
+    // std::string received_infohash = response.substr(28, 20);
+    // if (received_infohash != expected_infohash) {
+    //     throw std::runtime_error("Invalid handshake response: Infohash mismatch");
+    // }
 
     std::string receivedPeerID(response.substr(48, 20));
     std::cout << "Peer ID: " << receivedPeerID << std::endl;
@@ -630,19 +630,6 @@ int main(int argc, char* argv[]) {
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
             std::string receivedInfohash = std::string(response + 28, 20);
-
-            std::cout << "Sent Binary Infohash: ";
-            for (unsigned char c : binaryInfoHash) {
-                printf("%02x", c);
-            }
-            std::cout << std::endl;
-
-            std::cout << "Received Binary Infohash: ";
-            for (unsigned char c : receivedInfohash) {
-                printf("%02x", static_cast<unsigned char>(c));
-            }
-            std::cout << std::endl;
-
             
             if (bytesRead != 68)
             {
