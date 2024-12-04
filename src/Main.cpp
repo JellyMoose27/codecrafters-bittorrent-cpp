@@ -234,6 +234,15 @@ std::vector<unsigned char> hexToBytes(const std::string& hex) {
     return bytes;
 }
 
+std::string bytes_to_hex(const std::string &bytes) {
+    std::ostringstream hexStream;
+    hexStream << std::hex << std::setfill('0');
+    for (unsigned char c : bytes) {
+        hexStream << std::setw(2) << static_cast<int>(c);
+    }
+    return hexStream.str();
+}
+
 // Function to encode info_hash in URL-encoded format
 std::string url_encode(const std::string& value) {
     auto rawBytes = hexToBytes(value);
@@ -293,6 +302,35 @@ std::vector<std::string> parse_peers(const std::string& peers) {
         result.push_back(ip + ":" + std::to_string(port));
     }
     return result;
+}
+
+int connect_to_peer(const std::string &ip, int port) {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("Socket creation failed");
+        return -1;
+    }
+
+    sockaddr_in serverAddr{};
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(port);
+    inet_pton(AF_INET, ip.c_str(), &serverAddr.sin_addr);
+
+    if (connect(sockfd, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) < 0) {
+        perror("Connection failed");
+        closesocket(sockfd);
+        return -1;
+    }
+    return sockfd;
+}   
+
+std::string generate_random_peer_id() {
+    std::string peerID;
+    srand(time(0));
+    for (int i = 0; i < 20; ++i) {
+        peerID += static_cast<char>(rand() % 256);
+    }
+    return peerID;
 }
 
 int main(int argc, char* argv[]) {
@@ -397,7 +435,7 @@ int main(int argc, char* argv[]) {
             left: the number of bytes left to download
                 Since you client hasn't downloaded anything yet, this'll be the total length of the file
                 (you've extracted this value from the torrent file in previous stages)
-                
+
             compact: whether the peer list should use the compact representation
                 For the purposes of this challenge, set this to 1.
                 The compact representation is more commonly used in the wild, 
@@ -448,6 +486,80 @@ int main(int argc, char* argv[]) {
             std::cerr << e.what() << '\n';
             return 1;
         }
+    }
+    else if (command == "handshake")
+    {
+        std::string filePath = argv[2];
+        try
+        {
+            std::string peerInfo = argv[3];
+            size_t colon_index = peerInfo.find(':');
+            if (colon_index == std::string::npos)
+            {
+                throw std::runtime_error("Invalid peer address format");
+            }
+            std::string peerIP = peerInfo.substr(0, colon_index);
+            int peerPort = std::stoi(peerInfo.substr(colon_index + 1));
+
+            // Step 1: Establish TCP connection with the peer
+            int sockfd = connect_to_peer(peerIP, peerPort);
+            if (sockfd < 0)
+                throw std::runtime_error("Failed to connect to peer");
+
+            std::string protocol = "BitTorrent protocol";
+            uint8_t protocolLength = static_cast<uint8_t>(protocol.length());
+
+            uint8_t reservedBytes[8] = {0};
+
+            std::string fileContent = read_file(filePath);
+            json decoded_torrent = decode_bencoded_value(fileContent);
+
+            // bencode the torrent
+            std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
+            SHA1 sha1;
+            sha1.update(bencoded_info);
+            std::string infoHash = sha1.final();
+
+            std::string peerID = generate_random_peer_id();
+
+            /*
+            1. length of the protocol string (BitTorrent protocol) which is 19 (1 byte)
+
+            2. the string BitTorrent protocol (19 bytes)
+
+            3. eight reserved bytes, which are all set to zero (8 bytes)
+
+            4. sha1 infohash (20 bytes) (NOT the hexadecimal representation, which is 40 bytes long)
+
+            5. peer id (20 bytes) (generate 20 random byte values)
+            */
+            std::string handshakeMessage;
+            handshakeMessage += static_cast<char>(protocolLength);
+            handshakeMessage += protocol;
+            handshakeMessage.append(reinterpret_cast<const char*>(reservedBytes), 8);
+            handshakeMessage += infoHash;
+            handshakeMessage += peerID;
+
+            send(sockfd, handshakeMessage.c_str(), handshakeMessage.size(), 0);
+
+            char response[68];
+            SSIZE_T bytesRead = recv(sockfd, response, sizeof(response), 0);
+            if (bytesRead != 68)
+            {
+                throw std::runtime_error("Invalid handshake response");
+            }
+
+            std::string recievedPeerID(response + 48, 20);
+            std::cout << "Peer ID: " << bytes_to_hex(recievedPeerID) << std::endl;
+
+            closesocket(sockfd);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        
+        
     }
     else {
 
