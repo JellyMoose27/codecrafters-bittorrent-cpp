@@ -571,8 +571,9 @@ int main(int argc, char* argv[]) {
             std::vector<char> handshakeMessage(68, '\0');
             handshakeMessage[0] = 19;
             strcpy(handshakeMessage.data() + 1, "BitTorrent protocol");
-            std::memcpy(handshakeMessage.data() + 1 + 19, infoHash.data(), 20);
-            std::memcpy(handshakeMessage.data() + 1 + 19 + 20, peerID.data(), 20);
+            std::memset(handshakeMessage.data() + 1 + 19, 0, 8);  // reserved (8 bytes)
+            std::memcpy(handshakeMessage.data() + 1 + 19 + 8, infoHash.data(), 20);
+            std::memcpy(handshakeMessage.data() + 1 + 19 + 8 + 20, peerID.data(), 20);
 
             std::cout << infoHash << std::endl;
             std::cout << peerID << std::endl;
