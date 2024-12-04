@@ -387,6 +387,11 @@ struct Handshake
     std::vector<char> toVector() const {
         std::vector<char> handshakeVector(sizeof(Handshake), 0);
         std::memcpy(handshakeVector.data(), this, sizeof(Handshake));
+
+        for (int i = 0; i < 20; i++)
+        {
+            std::cout << infoHash[i];
+        }
         return handshakeVector;
     }
 };
