@@ -588,7 +588,7 @@ int main(int argc, char* argv[]) {
             // calculate the info hash
             std::string infoHash = calculateInfohash(bencoded_info);
             std::string binaryInfoHash = hex_to_binary(infoHash);
-            std::cout << binaryInfoHash << std::endl;
+            // std::cout << binaryInfoHash << std::endl;
 
             std::string peerID = "00112233445566778899";
 
@@ -603,7 +603,7 @@ int main(int argc, char* argv[]) {
 
             5. peer id (20 bytes) (generate 20 random byte values)
             */
-            Handshake handshake(infoHash, peerID);
+            Handshake handshake(binaryInfoHash, peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
 
             // std::cout << infoHash << std::endl;
