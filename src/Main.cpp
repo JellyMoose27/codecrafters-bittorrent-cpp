@@ -536,6 +536,7 @@ int main(int argc, char* argv[]) {
             SHA1 sha1;
             sha1.update(bencoded_info);
             std::string infoHash = sha1.final();
+            std::string encodedHash = url_encode(infoHash);
 
             std::string peerID = generate_random_peer_id();
 
@@ -554,7 +555,7 @@ int main(int argc, char* argv[]) {
             handshakeMessage += static_cast<char>(protocolLength);
             handshakeMessage += protocol;
             handshakeMessage.append(reinterpret_cast<const char*>(reservedBytes), 8);
-            handshakeMessage += infoHash;
+            handshakeMessage += encodedHash;
             handshakeMessage += peerID;
 
             send(sockfd, handshakeMessage.c_str(), handshakeMessage.size(), 0);
