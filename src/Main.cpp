@@ -548,7 +548,6 @@ int main(int argc, char* argv[]) {
             sha1.update(bencoded_info);
             std::string infoHash = sha1.final();
 
-            std::cout << infoHash << std::endl;
 
             std::string peerID = "01234567890123456789";
 
@@ -570,6 +569,7 @@ int main(int argc, char* argv[]) {
             handshakeMessage += infoHash;
             handshakeMessage += peerID;
 
+            std::cout << infoHash << std::endl;
             std::cout << handshakeMessage << std::endl;
 
             // Step 1: Establish TCP connection with the peer
