@@ -858,6 +858,7 @@ int main(int argc, char* argv[]) {
 
             // Verify integrity
             std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
+            pieceHash = hex_to_binary(pieceHash);
             std::cout << "starting integrity" << std::endl;
             int hashLength = 20; // SHA-1 hash length in bytes
             std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
