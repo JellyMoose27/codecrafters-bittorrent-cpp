@@ -800,8 +800,6 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Expected bitfield message");
             }
 
-            std::cout << "Bitfield received" << std::endl;
-
             // Send interested message
             send_message(sockfd, MessageType::interested);
 
@@ -813,8 +811,6 @@ int main(int argc, char* argv[]) {
             {
                 throw std::runtime_error("Expected unchoke message");
             }
-
-            std::cout << "Unchoke received" << std::endl;
 
             // Send request message
             // Divide piece into blocks and request each blocks
@@ -828,8 +824,6 @@ int main(int argc, char* argv[]) {
                 int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
                 request_block(sockfd, piece_index, begin, block_length);
             }
-
-            std::cout << "Request sent" << std::endl;
 
             // Receive piece message for each block requested
             std::vector<uint8_t> pieceData(pieceLength);
@@ -854,24 +848,19 @@ int main(int argc, char* argv[]) {
                 received_blocks += blockLength;
             }
 
-            std::cout << "Piece received" << std::endl;
-
             // Verify integrity
             std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
             pieceHash = hex_to_binary(pieceHash);
-            std::cout << "starting integrity" << std::endl;
             int hashLength = 20; // SHA-1 hash length in bytes
             std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
-            std::cout << "integrity started" << std::endl;
             
-            std::cout << pieceHash << std::endl;
-            std::cout << expectedPieceHash << std::endl;
             if (pieceHash != expectedPieceHash)
             {
                 throw std::runtime_error("Piece hash mismatch");
             }
 
             // Write piece to disk
+            std::cout << "Attempting to write piece" << std::endl;
             std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
             output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
             output.close();
