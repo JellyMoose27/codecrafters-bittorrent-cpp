@@ -838,7 +838,6 @@ int main(int argc, char* argv[]) {
                     // Send request message
                     // Divide piece into blocks and request each blocks
                     // Receive piece message for each block requested
-                    int lastPieceLength = (piece_index == totalPieces - 1) ? (length % pieceLength) : pieceLength;
                     for (int begin = 0; begin < pieceLength; begin += PIECE_BLOCK)
                     {
                         int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
@@ -847,7 +846,7 @@ int main(int argc, char* argv[]) {
                     std::vector<uint8_t> pieceData(pieceLength);
                     int received_blocks = 0;
 
-                    while (received_blocks < lastPieceLength)
+                    while (received_blocks < pieceLength)
                     {
                         std::vector<uint8_t> message = receive_message(sockfd);
                         if (message[0] != MessageType::piece)
