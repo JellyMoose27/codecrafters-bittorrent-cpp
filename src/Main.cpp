@@ -358,7 +358,7 @@ void validate_handshake(const std::string& response, const std::string& expected
     // }
 
     std::string receivedPeerID(response.substr(48, 20));
-    std::cout << "Peer ID: " << receivedPeerID << std::endl;
+    std::cout << "Peer ID: " << bytes_to_hex(receivedPeerID) << std::endl;
 }
 
 std::string calculateInfohash(std::string bencoded_info)
@@ -407,10 +407,6 @@ struct Handshake
         std::vector<char> handshakeVector(sizeof(Handshake), 0);
         std::memcpy(handshakeVector.data(), this, sizeof(Handshake));
 
-        for (int i = 0; i < 20; i++)
-        {
-            std::cout << infoHash[i];
-        }
         return handshakeVector;
     }
 };
@@ -629,8 +625,6 @@ int main(int argc, char* argv[]) {
             // Step 3: Receive the handshake response
             char response[68];
             ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
-            std::string receivedInfohash = std::string(response + 28, 20);
-            
             if (bytesRead != 68)
             {
                 closesocket(sockfd);
