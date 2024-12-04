@@ -860,6 +860,7 @@ int main(int argc, char* argv[]) {
             // Write piece to disk
             std::cout << "Attempting to write piece" << std::endl;
             std::ofstream output("piece_" + std::to_string(piece_index), std::ios::binary);
+            std::cout << "Piece written" << std::endl;
             output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
             output.close();
         }
