@@ -570,6 +570,8 @@ int main(int argc, char* argv[]) {
             handshakeMessage += peerID;
 
             std::cout << infoHash << std::endl;
+            std::cout << peerID << std::endl;
+            std::cout << peerPort << std::endl;
             std::cout << handshakeMessage << std::endl;
 
             // Step 1: Establish TCP connection with the peer
