@@ -838,58 +838,54 @@ int main(int argc, char* argv[]) {
                     // Send request message
                     // Divide piece into blocks and request each blocks
                     // Receive piece message for each block requested
-                    for (int pieceIndex = 0; pieceIndex < totalPieces; ++pieceIndex)
+                    int lastPieceLength = (piece_index == totalPieces - 1) ? (length % pieceLength) : pieceLength;
+                    for (int begin = 0; begin < pieceLength; begin += PIECE_BLOCK)
                     {
-                        int lastPieceLength = (piece_index == totalPieces - 1) ? (length % pieceLength) : pieceLength;
-                        for (int begin = 0; begin < pieceLength; begin += PIECE_BLOCK)
-                        {
-                            int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
-                            request_block(sockfd, piece_index, begin, block_length);
-                        }
-                        std::vector<uint8_t> pieceData(pieceLength);
-                        int received_blocks = 0;
-
-                        while (received_blocks < lastPieceLength)
-                        {
-                            std::vector<uint8_t> message = receive_message(sockfd);
-                            if (message[0] != MessageType::piece)
-                            {
-                                throw std::runtime_error("Expected piece message");
-                            }
-
-                            // Extract piece data
-                            int index = ntohl(*reinterpret_cast<int*>(&message[1]));
-                            int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
-                            const uint8_t* block = &message[9];
-                            int blockLength = message.size() - 9;
-
-                            // Save the block data
-                            std::memcpy(&pieceData[begin], block, blockLength);
-                            received_blocks += blockLength;
-                        }
-
-                        // Verify integrity
-                        std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
-                        pieceHash = hex_to_binary(pieceHash);
-                        int hashLength = 20; // SHA-1 hash length in bytes
-                        std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
-                        
-                        if (pieceHash != expectedPieceHash)
-                        {
-                            throw std::runtime_error("Piece hash mismatch");
-                        }
-
-                        // Write piece to disk
-                        std::ofstream output(argv[3]);
-                        output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
-                        output.close();
-
-                        std::cout << "Piece downloaded successfully" << std::endl;
-                        pieceDownloaded = true;
-                        closesocket(sockfd);
-                        break; // Exit the loop once the piece is downloaded
+                        int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
+                        request_block(sockfd, piece_index, begin, block_length);
                     }
-                    break;
+                    std::vector<uint8_t> pieceData(pieceLength);
+                    int received_blocks = 0;
+
+                    while (received_blocks < lastPieceLength)
+                    {
+                        std::vector<uint8_t> message = receive_message(sockfd);
+                        if (message[0] != MessageType::piece)
+                        {
+                            throw std::runtime_error("Expected piece message");
+                        }
+
+                        // Extract piece data
+                        int index = ntohl(*reinterpret_cast<int*>(&message[1]));
+                        int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
+                        const uint8_t* block = &message[9];
+                        int blockLength = message.size() - 9;
+
+                        // Save the block data
+                        std::memcpy(&pieceData[begin], block, blockLength);
+                        received_blocks += blockLength;
+                    }
+
+                    // Verify integrity
+                    std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
+                    pieceHash = hex_to_binary(pieceHash);
+                    int hashLength = 20; // SHA-1 hash length in bytes
+                    std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
+                    
+                    if (pieceHash != expectedPieceHash)
+                    {
+                        throw std::runtime_error("Piece hash mismatch");
+                    }
+
+                    // Write piece to disk
+                    std::ofstream output(argv[3]);
+                    output.write(reinterpret_cast<const char*>(pieceData.data()), pieceData.size());
+                    output.close();
+
+                    std::cout << "Piece downloaded successfully" << std::endl;
+                    pieceDownloaded = true;
+                    closesocket(sockfd);
+                    break; // Exit the loop once the piece is downloaded
                 }   
                 catch (const std::exception& e)
                 {
