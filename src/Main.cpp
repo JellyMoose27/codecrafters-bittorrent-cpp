@@ -1101,14 +1101,22 @@ int main(int argc, char* argv[]) {
                         // std::cout << "Remaining bytes: " << remaining << std::endl;
                         remaining -= blockLength;
                         offset += blockLength;
+
+                        std::cout << "Piece index: " << piece_index << ", Begin: " << begin 
+                        << ", Block length: " << blockLength << ", Remaining: " << remaining << std::endl;
                     }
 
                     // Verify integrity
                     std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
                     pieceHash = hex_to_binary(pieceHash);
                     int hashLength = 20; // SHA-1 hash length in bytes
-                    std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
+                    std::string expectedPieceHash = decoded_torrent["info"]["pieces"]
+                                                    .get<std::string>()
+                                                    .substr(piece_index * hashLength, hashLength);
                     
+                    std::cout << "Expected hash: " << bytes_to_hex(expectedPieceHash)
+                    << ", Calculated hash: " << bytes_to_hex(pieceHash) << std::endl;
+
                     if (pieceHash != expectedPieceHash)
                     {
                         throw std::runtime_error("Piece hash mismatch");
@@ -1127,7 +1135,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 ofs.write(reinterpret_cast<const char*>(fullFileData.data()), fullFileData.size());
-                
+
                 if (!ofs) {
                     throw std::runtime_error("Failed to write data to output file.");
                 }
