@@ -767,6 +767,9 @@ int main(int argc, char* argv[]) {
             // "./your_bittorrent.sh download_piece -o /tmp/test-piece sample.torrent <piece_index>"
             int piece_index = std::stoi(argv[5]);
             size_t pieceLength = decoded_torrent["info"]["piece length"];
+
+            std::cout << "Length of file: " << length << std::endl;
+            std::cout << "Piece length: " << pieceLength << std::endl;
             size_t totalPieces = (length + pieceLength - 1) / pieceLength;
 
             std::cout << "Total pieces: " << totalPieces << std::endl;
@@ -875,7 +878,7 @@ int main(int argc, char* argv[]) {
 
                     // Save the block data
                     std::memcpy(&pieceData[begin], block, blockLength);
-                    std::cout << "Remaining bytes: " << remaining << std::endl;
+                    // std::cout << "Remaining bytes: " << remaining << std::endl;
                     remaining -= blockLength;
                     offset += blockLength;
                 }
