@@ -844,7 +844,7 @@ int main(int argc, char* argv[]) {
                 // Send request message
                 // Divide piece into blocks and request each blocks
                 // Receive piece message for each block requested
-                size_t currentPieceSize = (piece_index == totalPieces) ? (length % pieceLength) : pieceLength;
+                size_t currentPieceSize = (piece_index == totalPieces - 1) ? (length % pieceLength) : pieceLength;
                 if (currentPieceSize == 0)
                 {
                     currentPieceSize = pieceLength;
