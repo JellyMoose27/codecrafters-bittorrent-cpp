@@ -1111,10 +1111,7 @@ int main(int argc, char* argv[]) {
                     std::string expectedPieceHash = decoded_torrent["info"]["pieces"]
                                                     .get<std::string>()
                                                     .substr(piece_index * hashLength, hashLength);
-                    
-                    std::cout << "Expected hash: " << bytes_to_hex(expectedPieceHash)
-                    << ", Calculated hash: " << bytes_to_hex(pieceHash) << std::endl;
-
+                                                    
                     if (pieceHash != expectedPieceHash)
                     {
                         throw std::runtime_error("Piece hash mismatch");
