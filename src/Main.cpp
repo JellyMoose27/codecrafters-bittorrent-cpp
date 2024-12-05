@@ -431,7 +431,7 @@ enum MessageType : uint8_t
     cancel = 8
 };
 
-std::vector<uint8_t> receive_message(int sockfd)
+std::vector<uint8_t>    receive_message(int sockfd)
 {
     // Read message length (4 bytes)
     uint32_t length = 0;
@@ -838,16 +838,21 @@ int main(int argc, char* argv[]) {
                     // Send request message
                     // Divide piece into blocks and request each blocks
                     // Receive piece message for each block requested
-                    for (int begin = 0; begin < pieceLength; begin += PIECE_BLOCK)
+                    int currentPieceSize = (piece_index == totalPieces) ? (length % pieceLength) : pieceLength;
+                    if (currentPieceSize == 0)
                     {
-                        int block_length = std::min(PIECE_BLOCK, pieceLength - begin);
-                        request_block(sockfd, piece_index, begin, block_length);
+                        currentPieceSize = pieceLength;
                     }
-                    std::vector<uint8_t> pieceData(pieceLength);
-                    int received_blocks = 0;
-
-                    while (received_blocks < pieceLength)
+                    int remaining = currentPieceSize;
+                    int offset = 0;
+                    // while (remaining > 0)    
+                    // do all of the below
+                    // TODO: Modify the below code to update the actual piece length
+                    while(remaining > 0)
                     {
+                        int blockSize = std::min(PIECE_BLOCK, remaining);
+                        request_block(sockfd, piece_index, offset, blockSize);
+
                         std::vector<uint8_t> message = receive_message(sockfd);
                         if (message[0] != MessageType::piece)
                         {
@@ -862,7 +867,8 @@ int main(int argc, char* argv[]) {
 
                         // Save the block data
                         std::memcpy(&pieceData[begin], block, blockLength);
-                        received_blocks += blockLength;
+                        remaining -= blockLength;
+                        offset += blockLength;
                     }
 
                     // Verify integrity
@@ -884,8 +890,7 @@ int main(int argc, char* argv[]) {
                     std::cout << "Piece downloaded successfully" << std::endl;
                     pieceDownloaded = true;
                     closesocket(sockfd);
-                    break; // Exit the loop once the piece is downloaded
-                }   
+                }
                 catch (const std::exception& e)
                 {
                     std::cerr << "Error with peer: " << e.what() << std::endl;
