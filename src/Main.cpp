@@ -1147,7 +1147,7 @@ int main(int argc, char* argv[]) {
                     // Write piece to disk
                     std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + piece_index * pieceLength);;
 
-                    std::cout << "Piece downloaded successfully" << std::endl;
+                    std::cout << "Piece " << piece_index << "/" << totalPieces << " downloaded successfully" << std::endl;
                 }
                 closesocket(sockfd);
                 std::string outputFile = get_output_file(argc, argv);
