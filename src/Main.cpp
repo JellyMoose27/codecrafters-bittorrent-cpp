@@ -1063,7 +1063,7 @@ int main(int argc, char* argv[]) {
                 // Divide piece into blocks and request each blocks
                 // Receive piece message for each block requested
                 // Note: INDEX ALWAYS STARTS FROM ZERO, DO NOT FORGET THIS
-                for (size_t piece_index; piece_index < totalPieces; piece_index++)
+                for (size_t piece_index = 0; piece_index < totalPieces; piece_index++)
                 {
                     size_t currentPieceSize = (piece_index == totalPieces - 1) ? (length % pieceLength) : pieceLength;
                     if (currentPieceSize == 0)
