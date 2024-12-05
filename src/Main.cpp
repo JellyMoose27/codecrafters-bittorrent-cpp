@@ -860,7 +860,7 @@ int main(int argc, char* argv[]) {
 
                         request_block(sockfd, piece_index, offset, blockSize);
 
-                        std::cout << "receiving message..." << std::endl;
+                        // std::cout << "receiving message..." << std::endl;
                         std::vector<uint8_t> message = receive_message(sockfd);
                         if (message[0] != MessageType::piece)
                         {
@@ -878,7 +878,7 @@ int main(int argc, char* argv[]) {
                         remaining -= blockLength;
                         offset += blockLength;
 
-                        std::cout << "Message received" << std::endl;
+                        // std::cout << "Message received" << std::endl;
                     }
 
                     std::cout << "Received blocks successfully" << std::endl;
