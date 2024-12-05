@@ -452,8 +452,6 @@ std::vector<uint8_t> receive_message(int sockfd)
             throw std::runtime_error("Failed to read payload: Connection lost or incomplete data");
         }
         totalBytesRead += bytesRead;
-
-        std::cout << "Bytes Read: " << bytesRead << std::endl;
     }
     return buffer;
 }
@@ -881,7 +879,7 @@ int main(int argc, char* argv[]) {
                     remaining -= blockLength;
                     offset += blockLength;
 
-                    // std::cout << "Message received" << std::endl;
+                    std::cout << "Current piece data size: " << pieceData.size() << std::endl;
                 }
 
                 std::cout << "Received blocks successfully" << std::endl;
