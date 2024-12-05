@@ -976,9 +976,7 @@ int main(int argc, char* argv[]) {
             }           
 
             size_t pieceLength = decoded_torrent["info"]["piece length"];
-
-            std::cout << "Length of file: " << length << std::endl;
-            std::cout << "Piece length: " << pieceLength << std::endl;
+            
             size_t totalPieces = (length + pieceLength - 1) / pieceLength;
             int piece_index = 0;
             bool fileDownloaded = false;
