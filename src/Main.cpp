@@ -435,7 +435,7 @@ std::vector<uint8_t> receive_message(int sockfd)
 {
     // Read message length (4 bytes)
     uint32_t length = 0;
-    std::cout << length << std::endl;
+    std::cout << "Message length: " << length << std::endl;
     if (recv(sockfd, &length, sizeof(length), 0) != sizeof(length))
     {
         throw std::runtime_error("Failed to read message");
@@ -454,7 +454,7 @@ std::vector<uint8_t> receive_message(int sockfd)
     }
     totalBytesRead += bytesRead;
 
-    std::cout << totalBytesRead << std::endl;
+    std::cout << "Total Bytes Read: " << totalBytesRead << std::endl;
 }
     return buffer;
 }
@@ -856,6 +856,9 @@ int main(int argc, char* argv[]) {
                     while(remaining > 0)
                     {
                         size_t blockSize = std::min(PIECE_BLOCK, remaining);
+
+                        std::cout << "Block size: " << blockSize << std::endl;
+
                         request_block(sockfd, piece_index, offset, blockSize);
 
                         std::cout << "receiving message..." << std::endl;
