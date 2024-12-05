@@ -441,6 +441,8 @@ std::vector<uint8_t> receive_message(int sockfd)
     }
     length = ntohl(length);
 
+    std::cout << length << std::endl;
+
     // Read the payload (can ignore this for now)
     std::vector<uint8_t> buffer(length);
 
@@ -451,6 +453,8 @@ std::vector<uint8_t> receive_message(int sockfd)
         throw std::runtime_error("Failed to read payload: Connection lost or incomplete data");
     }
     totalBytesRead += bytesRead;
+
+    std::cout << totalBytesRead << std::endl;
 }
     return buffer;
 }
