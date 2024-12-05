@@ -493,6 +493,15 @@ std::string get_output_file(int argc, char* argv[]) {
     throw std::runtime_error("Output file not specified. Use the -o option.");
 }
 
+struct BlockRequest
+{
+    int piece_index;
+    int offset;
+    size_t length;
+};
+
+std::deque<BlockRequest> pending_requests;
+
 int main(int argc, char* argv[]) {
 
     if (argc < 2) {
@@ -1075,13 +1084,19 @@ int main(int argc, char* argv[]) {
                     std::vector<uint8_t> pieceData(currentPieceSize);
                     
                     // TODO: Modify the below code to update the actual piece length
-                    while(remaining > 0)
+                    while(remaining > 0 || !pending_requests.empty())
                     {
-                        size_t blockSize = std::min(PIECE_BLOCK, remaining);
+                        while (pending_requests.size() < 5 && remaining > 0)
+                        {
+                            size_t blockSize = std::min(PIECE_BLOCK, remaining);
 
-                        // std::cout << "Block size: " << blockSize << std::endl;
+                            // std::cout << "Block size: " << blockSize << std::endl;
 
-                        request_block(sockfd, piece_index, offset, blockSize);
+                            request_block(sockfd, piece_index, offset, blockSize);
+
+                            offset += blockSize;
+                            remaining -= blockSize;
+                        }
 
                         // std::cout << "receiving message..." << std::endl;
                         std::vector<uint8_t> message = receive_message(sockfd);
@@ -1096,12 +1111,23 @@ int main(int argc, char* argv[]) {
                         const uint8_t* block = &message[9];
                         int blockLength = message.size() - 9;
 
-                        // Save the block data
-                        std::memcpy(&pieceData[begin], block, blockLength);
-                        // std::cout << "Remaining bytes: " << remaining << std::endl;
-                        remaining -= blockLength;
-                        offset += blockLength;
+                        // Find the matching request in the queue
+                        auto it = std::find_if(pending_requests.begin(), pending_requests.end(),
+                            [&](const BlockRequest& req) {
+                                return req.piece_index == index && req.offset == begin;
+                            });
 
+                        if (it == pending_requests.end()) {
+                            throw std::runtime_error("Unexpected block received");
+                        }
+
+                        // Save the block data
+                        std::memcpy(&pieceData[it->offset], block, blockLength);
+                        // std::cout << "Remaining bytes: " << remaining << std::endl;
+                        // remaining -= blockLength;
+                        // offset += blockLength;
+
+                        pending_requests.erase(it);
                     }
 
                     // Verify integrity
