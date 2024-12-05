@@ -416,7 +416,7 @@ struct Handshake
     }
 };
 
-const int PIECE_BLOCK = 16 * 1024;
+const size_t PIECE_BLOCK = 16 * 1024;
 
 enum MessageType : uint8_t 
 {
@@ -431,7 +431,7 @@ enum MessageType : uint8_t
     cancel = 8
 };
 
-std::vector<uint8_t>    receive_message(int sockfd)
+std::vector<uint8_t> receive_message(int sockfd)
 {
     // Read message length (4 bytes)
     uint32_t length = 0;
@@ -730,7 +730,7 @@ int main(int argc, char* argv[]) {
             std::string trackerURL = decoded_torrent["announce"];  
 
             // length
-            int length = decoded_torrent["info"]["length"];
+            size_t length = decoded_torrent["info"]["length"];
 
             std::string peerID = "01234567890123456789";
             // Perform the tracker GET request to get a list of peers
@@ -762,11 +762,11 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("No peers available for connection");
             }           
 
-            // Piece index from command line
+            // Piece index from command  line
             // "./your_bittorrent.sh download_piece -o /tmp/test-piece sample.torrent <piece_index>"
             int piece_index = std::stoi(argv[5]);
-            int pieceLength = decoded_torrent["info"]["piece length"];
-            int totalPieces = (length + pieceLength - 1) / pieceLength;
+            size_t pieceLength = decoded_torrent["info"]["piece length"];
+            size_t totalPieces = (length + pieceLength - 1) / pieceLength;
             bool pieceDownloaded = false;
 
             for (const auto& peerInfo : peerList)
@@ -838,22 +838,23 @@ int main(int argc, char* argv[]) {
                     // Send request message
                     // Divide piece into blocks and request each blocks
                     // Receive piece message for each block requested
-                    int currentPieceSize = (piece_index == totalPieces) ? (length % pieceLength) : pieceLength;
+                    size_t currentPieceSize = (piece_index == totalPieces) ? (length % pieceLength) : pieceLength;
                     if (currentPieceSize == 0)
                     {
                         currentPieceSize = pieceLength;
                     }
-                    int remaining = currentPieceSize;
-                    int offset = 0;
+                    size_t remaining = currentPieceSize;
+                    size_t offset = 0;
                     std::vector<uint8_t> pieceData(currentPieceSize);
                     // while (remaining > 0)    
                     // do all of the below
                     // TODO: Modify the below code to update the actual piece length
                     while(remaining > 0)
                     {
-                        int blockSize = std::min(PIECE_BLOCK, remaining);
+                        size_t blockSize = std::min(PIECE_BLOCK, remaining);
                         request_block(sockfd, piece_index, offset, blockSize);
 
+                        std::cout << "receiving message..." << std::endl;
                         std::vector<uint8_t> message = receive_message(sockfd);
                         if (message[0] != MessageType::piece)
                         {
