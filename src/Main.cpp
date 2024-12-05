@@ -436,7 +436,7 @@ std::vector<uint8_t> receive_message(int sockfd)
     // Read message length (4 bytes)
     uint32_t length = 0;
     // std::cout << "Message length: " << length << std::endl;
-    if (recv(sockfd, &length, sizeof(length), 0) != sizeof(length))
+    if (recv(sockfd, &length, sizeof(length), 0) != sizeof(length)) // failed after downloading some blocks, but why?
     {
         throw std::runtime_error("Failed to read message");
     }
@@ -878,10 +878,6 @@ int main(int argc, char* argv[]) {
                     std::cout << "Remaining bytes: " << remaining << std::endl;
                     remaining -= blockLength;
                     offset += blockLength;
-
-                    int i = 0;
-                    std::cout << "Current block size: " << pieceData[i] << std::endl;
-                    i++;
                 }
 
                 std::cout << "Received blocks successfully" << std::endl;
