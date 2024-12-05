@@ -1102,8 +1102,6 @@ int main(int argc, char* argv[]) {
                         remaining -= blockLength;
                         offset += blockLength;
 
-                        std::cout << "Piece index: " << piece_index << ", Begin: " << begin 
-                        << ", Block length: " << blockLength << ", Remaining: " << remaining << std::endl;
                     }
 
                     // Verify integrity
