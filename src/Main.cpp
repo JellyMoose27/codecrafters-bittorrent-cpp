@@ -879,7 +879,9 @@ int main(int argc, char* argv[]) {
                     remaining -= blockLength;
                     offset += blockLength;
 
-                    std::cout << "Current piece data size: " << pieceData.size() << std::endl;
+                    int i = 0;
+                    std::cout << "Current block size: " << pieceData[i] << std::endl;
+                    i++;
                 }
 
                 std::cout << "Received blocks successfully" << std::endl;
