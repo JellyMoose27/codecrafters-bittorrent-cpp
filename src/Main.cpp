@@ -880,8 +880,6 @@ int main(int argc, char* argv[]) {
                     // Save the block data
                     std::memcpy(&pieceData[begin], block, blockLength);
                     // std::cout << "Remaining bytes: " << remaining << std::endl;
-                    std::cout << "Received message length: " << length
-                    << ", Expected: " << blockLength + 9 << std::endl;
                     remaining -= blockLength;
                     offset += blockLength;
                 }
