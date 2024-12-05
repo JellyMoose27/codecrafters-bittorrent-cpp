@@ -1091,7 +1091,8 @@ int main(int argc, char* argv[]) {
                             size_t blockSize = std::min(PIECE_BLOCK, remaining);
 
                             // std::cout << "Block size: " << blockSize << std::endl;
-
+                            BlockRequest blockRequest = {piece_index, offset, blockSize};
+                            pending_requests.push_back(blockRequest);
                             request_block(sockfd, piece_index, offset, blockSize);
 
                             offset += blockSize;
