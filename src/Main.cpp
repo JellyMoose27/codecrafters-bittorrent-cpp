@@ -877,10 +877,10 @@ int main(int argc, char* argv[]) {
 
                     // Save the block data
                     std::memcpy(&pieceData[begin], block, blockLength);
+                    std::cout << "Remaining bytes: " << remaining << std::endl;
                     remaining -= blockLength;
                     offset += blockLength;
 
-                    std::cout << "Remaining bytes: " << remaining << std::endl;
                     // std::cout << "Message received" << std::endl;
                 }
 
