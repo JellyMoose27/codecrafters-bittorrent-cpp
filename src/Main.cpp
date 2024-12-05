@@ -976,7 +976,7 @@ int main(int argc, char* argv[]) {
             }           
 
             size_t pieceLength = decoded_torrent["info"]["piece length"];
-            
+
             size_t totalPieces = (length + pieceLength - 1) / pieceLength;
             int piece_index = 0;
             bool fileDownloaded = false;
@@ -1016,7 +1016,7 @@ int main(int argc, char* argv[]) {
                 if (received_infohash != binaryInfoHash) {
                     throw std::runtime_error("Invalid handshake response: Infohash mismatch");
                 }
-                std::cout << "Handshake established" << std::endl;
+                // std::cout << "Handshake established" << std::endl;
 
                 // Exchange multiple peer messages to download the file piece
                 // TODO
@@ -1042,8 +1042,6 @@ int main(int argc, char* argv[]) {
                 {
                     try
                     {
-                        
-                    
                         // Send interested message
                         send_message(sockfd, MessageType::interested);
 
@@ -1096,8 +1094,6 @@ int main(int argc, char* argv[]) {
                             remaining -= blockLength;
                             offset += blockLength;
                         }
-
-                        std::cout << "Received blocks successfully" << std::endl;
 
                         // Verify integrity
                         std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
