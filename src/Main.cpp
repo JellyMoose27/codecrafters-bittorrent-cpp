@@ -7,6 +7,7 @@
 #include <array>
 #include <cstring>
 #include <curl/curl.h>
+#include <queue>
 #ifdef _WIN32
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib") // Link Winsock library
@@ -1068,31 +1069,56 @@ int main(int argc, char* argv[]) {
                         // while (remaining > 0)    
                         // do all of the below
                         // TODO: Modify the below code to update the actual piece length
+                        std::queue<size_t> pendingOffsets;
+                        
                         while(remaining > 0)
                         {
-                            size_t blockSize = std::min(PIECE_BLOCK, remaining);
-
-                            // std::cout << "Block size: " << blockSize << std::endl;
-
-                            request_block(sockfd, piece_index, offset, blockSize);
-
-                            // std::cout << "receiving message..." << std::endl;
-                            std::vector<uint8_t> message = receive_message(sockfd);
-                            if (message[0] != MessageType::piece)
+                            for (int i = 0; i < std::min(5UL, remaining); i++)
                             {
-                                throw std::runtime_error("Expected piece message");
+                                size_t blockSize = std::min(PIECE_BLOCK, remaining);
+
+                                // std::cout << "Block size: " << blockSize << std::endl;
+
+                                request_block(sockfd, piece_index, offset, blockSize);
+                                pendingOffsets.push(offset);
+                                remaining -= blockSize;
+                                offset += blockSize;
                             }
+                            
+                            while (!pendingOffsets.empty())
+                            {
+                                // std::cout << "receiving message..." << std::endl;
+                                std::vector<uint8_t> message = receive_message(sockfd);
+                                if (message[0] != MessageType::piece)
+                                {
+                                    throw std::runtime_error("Expected piece message");
+                                }
 
-                            // Extract piece data
-                            int index = ntohl(*reinterpret_cast<int*>(&message[1]));
-                            int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
-                            const uint8_t* block = &message[9];
-                            int blockLength = message.size() - 9;
+                                // Extract piece data
+                                int index = ntohl(*reinterpret_cast<int*>(&message[1]));
+                                int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
+                                const uint8_t* block = &message[9];
+                                int blockLength = message.size() - 9;
 
-                            // Save the block data
-                            std::memcpy(&pieceData[begin], block, blockLength);
-                            remaining -= blockLength;
-                            offset += blockLength;
+                                // Save the block data
+                                std::memcpy(&pieceData[begin], block, blockLength);
+
+                                // Dequeue processed request offset
+                                pendingOffsets.pop();
+
+                                // If there are still remaining bytes, send more request
+                                if (remaining > 0)
+                                {
+                                    size_t blockSize = std::min(PIECE_BLOCK, remaining);
+
+                                    // std::cout << "Block size: " << blockSize << std::endl;
+
+                                    request_block(sockfd, piece_index, offset, blockSize);
+                                    pendingOffsets.push(offset);
+                                    remaining -= blockSize;
+                                    offset += blockSize;
+                                }
+                            }
                         }
 
                         // Verify integrity
