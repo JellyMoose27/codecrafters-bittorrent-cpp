@@ -1073,7 +1073,7 @@ int main(int argc, char* argv[]) {
                         
                         while(remaining > 0)
                         {
-                            for (int i = 0; i < std::min(5UL, remaining); i++)
+                            for (int i = 0; i < std::min(5UL, remaining / PIECE_BLOCK); i++)
                             {
                                 size_t blockSize = std::min(PIECE_BLOCK, remaining);
 
