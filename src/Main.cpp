@@ -871,7 +871,11 @@ int main(int argc, char* argv[]) {
                         std::memcpy(&pieceData[begin], block, blockLength);
                         remaining -= blockLength;
                         offset += blockLength;
+
+                        std::cout << "Message received" << std::endl;
                     }
+
+                    std::cout << "Received blocks successfully" << std::endl;
 
                     // Verify integrity
                     std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
