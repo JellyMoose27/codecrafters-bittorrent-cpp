@@ -416,7 +416,7 @@ struct Handshake
     }
 };
 
-const int PIECE_BLOCK = 16384; //16 kb
+const size_t PIECE_BLOCK = 16384; //16 kb
 
 enum MessageType : uint8_t 
 {
@@ -856,7 +856,7 @@ int main(int argc, char* argv[]) {
                 // TODO: Modify the below code to update the actual piece length
                 while(remaining > 0)
                 {
-                    int blockSize = std::min(PIECE_BLOCK, remaining);
+                    size_t blockSize = std::min(PIECE_BLOCK, remaining);
 
                     // std::cout << "Block size: " << blockSize << std::endl;
 
