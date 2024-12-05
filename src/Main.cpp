@@ -852,8 +852,7 @@ int main(int argc, char* argv[]) {
                 size_t remaining = currentPieceSize;
                 size_t offset = 0;
                 std::vector<uint8_t> pieceData(currentPieceSize);
-
-                std::cout << "Piece index: " << piece_index << ", size: " << currentPieceSize << std::endl;
+                
                 // while (remaining > 0)    
                 // do all of the below
                 // TODO: Modify the below code to update the actual piece length
@@ -881,6 +880,8 @@ int main(int argc, char* argv[]) {
                     // Save the block data
                     std::memcpy(&pieceData[begin], block, blockLength);
                     // std::cout << "Remaining bytes: " << remaining << std::endl;
+                    std::cout << "Received message length: " << length
+                    << ", Expected: " << blockLength + 9 << std::endl;
                     remaining -= blockLength;
                     offset += blockLength;
                 }
