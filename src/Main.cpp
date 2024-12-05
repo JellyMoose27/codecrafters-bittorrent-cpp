@@ -453,7 +453,7 @@ std::vector<uint8_t> receive_message(int sockfd)
         }
         totalBytesRead += bytesRead;
 
-        // std::cout << "Total Bytes Read: " << totalBytesRead << std::endl;
+        std::cout << "Bytes Read: " << bytesRead << std::endl;
     }
     return buffer;
 }
@@ -770,6 +770,8 @@ int main(int argc, char* argv[]) {
             int piece_index = std::stoi(argv[5]);
             size_t pieceLength = decoded_torrent["info"]["piece length"];
             size_t totalPieces = (length + pieceLength - 1) / pieceLength;
+
+            std::cout << "Total pieces: " << totalPieces << std::endl;
             bool pieceDownloaded = false;
 
             for (const auto& peerInfo : peerList)
@@ -877,10 +879,6 @@ int main(int argc, char* argv[]) {
                         std::memcpy(&pieceData[begin], block, blockLength);
                         remaining -= blockLength;
                         offset += blockLength;
-
-                        std::cout << "Offset: " << offset << std::endl;
-
-                        std::cout << "Block Length: " << blockLength << std::endl;
 
                         // std::cout << "Message received" << std::endl;
                     }
