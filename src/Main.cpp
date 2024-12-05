@@ -416,7 +416,7 @@ struct Handshake
     }
 };
 
-const size_t PIECE_BLOCK = 16 * 1024;
+const int PIECE_BLOCK = 16384; //16 kb
 
 enum MessageType : uint8_t 
 {
@@ -858,7 +858,7 @@ int main(int argc, char* argv[]) {
                 {
                     size_t blockSize = std::min(PIECE_BLOCK, remaining);
 
-                    std::cout << "Block size: " << blockSize << std::endl;
+                    // std::cout << "Block size: " << blockSize << std::endl;
 
                     request_block(sockfd, piece_index, offset, blockSize);
 
@@ -880,6 +880,7 @@ int main(int argc, char* argv[]) {
                     remaining -= blockLength;
                     offset += blockLength;
 
+                    std::cout << "Remaining bytes: " << remaining << std::endl;
                     // std::cout << "Message received" << std::endl;
                 }
 
