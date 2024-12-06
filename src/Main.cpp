@@ -8,8 +8,6 @@
 #include <cstring>
 #include <curl/curl.h>
 #include <queue>
-#include <thread>
-#include <future>
 #ifdef _WIN32
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib") // Link Winsock library
@@ -674,18 +672,13 @@ std::vector<uint8_t> download_file(const std::string& trackerURL, const std::str
         // Divide piece into blocks and request each blocks
         // Receive piece message for each block requested
         // Note: INDEX ALWAYS STARTS FROM ZERO, DO NOT FORGET THIS
-        std::vector<std::future<void>> workers;
         for (size_t piece_index = 0; piece_index < totalPieces; piece_index++)
         {
-            workers.push_back(std::async(std::launch::async, [=, &fullFileData]() {
-                std::vector<uint8_t> pieceData = download_piece(sockfd, piece_index, pieceLength, totalPieces, length, pieceHashes);
-                std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + piece_index * pieceLength);
-            }));
+            std::vector<uint8_t> pieceData = download_piece(sockfd, piece_index, pieceLength, totalPieces, length, pieceHashes);
+
+            // Write piece to disk
+            std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + piece_index * pieceLength);;
             std::cout << "Piece " << (piece_index + 1) << "/" << totalPieces << " downloaded successfully" << std::endl;
-        }
-        for (auto& worker : workers)
-        {
-            worker.get();
         }
         closesocket(sockfd);
     }
