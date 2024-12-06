@@ -678,7 +678,7 @@ std::vector<uint8_t> download_file(const std::string& trackerURL, const std::str
 
             // Write piece to disk
             std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + piece_index * pieceLength);;
-            std::cout << "Piece " << piece_index << "/" << totalPieces << " downloaded successfully" << std::endl;
+            std::cout << "Piece " << (piece_index + 1) << "/" << totalPieces << " downloaded successfully" << std::endl;
         }
         closesocket(sockfd);
     }
