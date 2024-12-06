@@ -1,31 +1,30 @@
-#include <queue>
+#include <thread>
 #include <mutex>
-#include <condition_variable>
-#include <tuple>
+#include <vector>
+#include <queue>
+#include <future>
+#include <iostream>
+#include <algorithm>
 
+// Thread-safe work queue for managing piece downloads
 class WorkQueue {
 private:
-    std::queue<size_t> queue; // Queue of piece indices
+    std::queue<size_t> pieces;
     std::mutex mtx;
-    std::condition_variable cv;
 
 public:
     void add_piece(size_t pieceIndex) {
         std::lock_guard<std::mutex> lock(mtx);
-        queue.push(pieceIndex);
-        cv.notify_one();
+        pieces.push(pieceIndex);
     }
 
-    size_t get_piece() {
-        std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock, [this]() { return !queue.empty(); });
-        size_t pieceIndex = queue.front();
-        queue.pop();
-        return pieceIndex;
-    }
-
-    bool empty() {
+    std::optional<size_t> get_piece() {
         std::lock_guard<std::mutex> lock(mtx);
-        return queue.empty();
+        if (pieces.empty()) {
+            return std::nullopt;
+        }
+        size_t piece = pieces.front();
+        pieces.pop();
+        return piece;
     }
 };
