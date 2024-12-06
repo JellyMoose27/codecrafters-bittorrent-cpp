@@ -675,23 +675,14 @@ std::vector<uint8_t> download_file(const std::string& trackerURL, const std::str
         // Receive piece message for each block requested
         // Note: INDEX ALWAYS STARTS FROM ZERO, DO NOT FORGET THIS
         std::vector<std::future<void>> workers;
-for (size_t piece_index = 0; piece_index < totalPieces; piece_index++) {
-    workers.push_back(std::async(std::launch::async, [=, &fullFileData, &peerList]() {
-        for (const auto& peerInfo : peerList) {
-            try {
-                auto [peerIP, peerPort] = parse_peer_info(peerInfo);
-                int sockfd = connect_to_peer(peerIP, peerPort);
-                perform_handshake(sockfd, handshakeMessage, hex_to_binary(infoHash));
+        for (size_t piece_index = 0; piece_index < totalPieces; piece_index++)
+        {
+            workers.push_back(std::async(std::launch::async, [=, &fullFileData]() {
                 std::vector<uint8_t> pieceData = download_piece(sockfd, piece_index, pieceLength, totalPieces, length, pieceHashes);
                 std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + piece_index * pieceLength);
-                closesocket(sockfd);
-                break; // Exit loop after successful download
-            } catch (const std::exception& e) {
-                std::cerr << "Failed to download piece " << piece_index << " from peer " << peerInfo << std::endl;
-            }
+            }));
+            std::cout << "Piece " << (piece_index + 1) << "/" << totalPieces << " downloaded successfully" << std::endl;
         }
-    }));
-}
         for (auto& worker : workers)
         {
             worker.get();
