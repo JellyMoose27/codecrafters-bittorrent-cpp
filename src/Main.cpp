@@ -25,6 +25,7 @@ typedef SSIZE_T ssize_t; // Define ssize_t for Wind
 using json = nlohmann::json;
 
 json decode_bencoded_value(const std::string& encoded_value, size_t& index);
+std::string generate_tracker_url(const std::string& trackerURL, const std::string& infoHash, const std::string& peerID, size_t length);
 
 json decode_bencoded_string(const std::string& encoded_value, size_t& index) {
 
@@ -699,7 +700,7 @@ std::vector<uint8_t> download_file(const std::string& trackerURL, const std::str
     {
         std::cerr << "Error with peer: " << e.what() << std::endl;
     }
-    return fullFileData;
+        return fullFileData;
 }
 
 int main(int argc, char* argv[]) {
