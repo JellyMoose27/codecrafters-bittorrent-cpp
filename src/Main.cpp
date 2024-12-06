@@ -354,27 +354,6 @@ int connect_to_peer(const std::string &ip, int port) {
     return sockfd;
 }   
 
-
-// Function to validate the handshake response
-void validate_handshake(const std::string& response, const std::string& expected_infohash) {
-    if (response.size() != 68) {
-        throw std::runtime_error("Invalid handshake size");
-    }
-
-    std::string received_infohash = response.substr(28, 20);
-    if (received_infohash != expected_infohash) {
-        throw std::runtime_error("Invalid handshake response: Infohash mismatch");
-    }
-
-    /*
-    Remember to convert back to hexadecimal for human readable output
-    Prints the hexadecimal value of the Peer ID of the Peer that we (the client) connected to
-    Example: received_peer_id: 3030313132323333343435353636373738383939 -> peer_id: 116494218e909827af98a36137026979dabbdcb9
-    */
-    std::string receivedPeerID(response.substr(48, 20));
-    std::cout << "Peer ID: " << bytes_to_hex(receivedPeerID) << std::endl;
-}
-
 std::string calculateInfohash(std::string bencoded_info)
 {
     SHA1 sha1;
@@ -562,6 +541,13 @@ void perform_handshake(int sockfd, const std::vector<char>& handshakeMessage, co
         throw std::runtime_error("Invalid handshake response: Infohash mismatch");
     }
     std::cout << "Handshake established" << std::endl;
+    /*
+    Remember to convert back to hexadecimal for human readable output
+    Prints the hexadecimal value of the Peer ID of the Peer that we (the client) connected to
+    Example: received_peer_id: 3030313132323333343435353636373738383939 -> peer_id: 116494218e909827af98a36137026979dabbdcb9
+    */
+    std::string receivedPeerID(std::string(response, 68).substr(48, 20));
+    std::cout << "Peer ID: " << bytes_to_hex(receivedPeerID) << std::endl;
 }
 
 std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceLength, size_t totalPieces, size_t length, const std::string& pieceHashes) {
@@ -765,86 +751,14 @@ int main(int argc, char* argv[]) {
 
         try
         {
-            std::string fileContent = read_file(filePath);
-            json decoded_torrent = decode_bencoded_value(fileContent);
-
-            // bencode the torrent
-            std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
-
-            // calculate the info hash
-            std::string infoHash = calculateInfohash(bencoded_info);
-            std::string urlEncodedHash = url_encode(infoHash);
-
-            // announceURL
-            std::string trackerURL = decoded_torrent["announce"];  
-
-            // length
-            int length = decoded_torrent["info"]["length"];
+            auto [decodedTorrent, trackerURL, length, pieceLength, totalPieces, infoHash, pieceHashes] = parse_torrent_file(filePath);
 
             // Parse the torrent
             // Contruct GET message
-            /*
-            
-            info_hash: the info hash of the torrent
-                20 bytes long, will need to be URL encoded
-                Note: this is NOT the hexadecimal representation, which is 40 bytes long
-
-            peer_id: a unique identifier for your client
-                A string of length 20 that you get to pick.
-
-            port: the port your client is listening on
-                You can set this to 6881, you will not have to support this functionality during this challenge.
-
-            uploaded: the total amount uploaded so far
-                Since your client hasn't uploaded anything yet, you can set this to 0.
-
-            downloaded: the total amount downloaded so far
-                Since your client hasn't downloaded anything yet, you can set this to 0.
-
-            left: the number of bytes left to download
-                Since you client hasn't downloaded anything yet, this'll be the total length of the file
-                (you've extracted this value from the torrent file in previous stages)
-
-            compact: whether the peer list should use the compact representation
-                For the purposes of this challenge, set this to 1.
-                The compact representation is more commonly used in the wild, 
-                non-compact representation is mostly supported for backward-compatibility.
-
-            */
             std::string peerID = "01234567890123456789";
-            std::ostringstream url;
-            url << trackerURL << "?info_hash=" << urlEncodedHash
-                << "&peer_id=" << peerID
-                << "&port=6881"
-                << "&uploaded=0"
-                << "&downloaded=0"
-                << "&left=" << length
-                << "&compact=1";
-
-            // Send HTTP GET message (request)
-            // Then receive tracker response
-            /*
-            The tracker's response will be a bencoded dictionary with two keys:
-
-            interval:
-                An integer, indicating how often your client should make a request to the tracker.
-                You can ignore this value for the purposes of this challenge.
-            peers.
-                A string, which contains list of peers that your client can connect to.
-                Each peer is represented using 6 bytes. The first 4 bytes are the peer's IP address
-                and the last 2 bytes are the peer's port number.
-
-            */
-            std::string response = http_get(url.str());
-
-            // Decode tracker response
-            json trackerResponse = decode_bencoded_value(response);
-
-            // list of peers
-            std::string peers = trackerResponse["peers"];
 
             // parse the peers and print them
-            std::vector<std::string> peerList = parse_peers(peers);
+            std::vector<std::string> peerList = request_peers(trackerURL, infoHash, peerID, length);
             for (const auto& peer : peerList)
             {
                 std::cout << peer << std::endl;
@@ -862,13 +776,7 @@ int main(int argc, char* argv[]) {
         try
         {
             std::string peerInfo = argv[3];
-            size_t colon_index = peerInfo.find(':');
-            if (colon_index == std::string::npos)
-            {
-                throw std::runtime_error("Invalid peer address format");
-            }
-            std::string peerIP = peerInfo.substr(0, colon_index);
-            int peerPort = std::stoi(peerInfo.substr(colon_index + 1));
+            auto [peerIP, peerPort] = parse_peer_info(peerInfo);
 
             // read the file 
             // bencode the torrent
@@ -878,7 +786,6 @@ int main(int argc, char* argv[]) {
             
             // calculate the info hash
             std::string infoHash = calculateInfohash(bencoded_info);
-            std::string binaryInfoHash = hex_to_binary(infoHash);
             // std::cout << binaryInfoHash << std::endl;
 
             // Peer ID of YOUR client
@@ -895,33 +802,13 @@ int main(int argc, char* argv[]) {
 
             5. peer id (20 bytes) (generate 20 random byte values)
             */
-            Handshake handshake(binaryInfoHash, peerID);
+            Handshake handshake(hex_to_binary(infoHash), peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
 
             // Step 1: Establish TCP connection with the peer
             int sockfd = connect_to_peer(peerIP, peerPort);
 
-            // Step 2: Send handshake message
-            if (send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0) == -1) {
-                closesocket(sockfd);
-                throw std::runtime_error("Failed to send handshake message");
-            }
-
-            // Step 3: Receive the handshake response
-            char response[68];
-            ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
-            if (bytesRead != 68)
-            {
-                closesocket(sockfd);
-                throw std::runtime_error("Invalid handshake response");
-            }
-
-            // Step 4: Validate the handshake response
-            /*
-            Note: the info hash in the handshake message is a binary value, not hexadecimal
-            Therefore, the function must use the binary value to check for mismatch
-            */ 
-            validate_handshake(std::string(response, 68), binaryInfoHash);
+            perform_handshake(sockfd, handshakeMessage, hex_to_binary(infoHash));
 
             // close the socket
             closesocket(sockfd);
@@ -936,102 +823,35 @@ int main(int argc, char* argv[]) {
         std::string filePath = argv[4];
         try
         {
-            // Read the torrent file to get the tracker URL
-            std::string fileContent = read_file(filePath);
-            json decoded_torrent = decode_bencoded_value(fileContent);
-
-            // bencode the torrent
-            std::string bencoded_info = json_to_bencode(decoded_torrent["info"]);
-
-            // calculate the info hash
-            std::string infoHash = calculateInfohash(bencoded_info);
-            std::string urlEncodedHash = url_encode(infoHash);
-            std::string binaryInfoHash = hex_to_binary(infoHash);
-
-            // announceURL
-            std::string trackerURL = decoded_torrent["announce"];  
-
-            // length
-            size_t length = decoded_torrent["info"]["length"];
+            auto [decoded_torrent, trackerURL, length, pieceLength, totalPieces, infoHash, pieceHashes] = parse_torrent_file(filePath);
 
             std::string peerID = "01234567890123456789";
             // Perform the tracker GET request to get a list of peers
-            std::ostringstream url;
-            url << trackerURL << "?info_hash=" << urlEncodedHash
-                << "&peer_id=" << peerID
-                << "&port=6881"
-                << "&uploaded=0"
-                << "&downloaded=0"
-                << "&left=" << length
-                << "&compact=1";
-            
-            std::string tracker_response = http_get(url.str());
-
-            // Decode tracker response
-            json trackerResponse = decode_bencoded_value(tracker_response);
-
-            // list of peers
-            std::string peers = trackerResponse["peers"];
-
             // parse the peers and print them
-            std::vector<std::string> peerList = parse_peers(peers);
+            std::vector<std::string> peerList = request_peers(trackerURL, infoHash, peerID, length);
 
             // Establish a TCP connection with a peer, and perform a handshake
-            Handshake handshake(binaryInfoHash, peerID);
+            Handshake handshake(hex_to_binary(infoHash), peerID);
             std::vector<char> handshakeMessage = handshake.toVector();
             
             if (peerList.empty()) {
                 throw std::runtime_error("No peers available for connection");
             }           
 
-            // Piece index from command  line
+            // Piece index from command line
             // "./your_bittorrent.sh download_piece -o /tmp/test-piece sample.torrent <piece_index>"
             int piece_index = std::stoi(argv[5]);
-            size_t pieceLength = decoded_torrent["info"]["piece length"];
-
-            std::cout << "Length of file: " << length << std::endl;
-            std::cout << "Piece length: " << pieceLength << std::endl;
-            size_t totalPieces = (length + pieceLength - 1) / pieceLength;
-
-            std::cout << "Total pieces: " << totalPieces << std::endl;
-            bool pieceDownloaded = false;
             std::string peerInfo = peerList[0];
             // for (const auto& peerInfo : peerList)
             // {
             try
             {
-                size_t colon_index = peerInfo.find(':');
-                if (colon_index == std::string::npos)
-                {
-                    throw std::runtime_error("Invalid peer address format");
-                }
-                std::string peerIP = peerInfo.substr(0, colon_index);
-                int peerPort = std::stoi(peerInfo.substr(colon_index + 1));
+                auto [peerIP, peerPort] = parse_peer_info(peerInfo);
 
                 // Step 1: Establish TCP connection with the peer
                 int sockfd = connect_to_peer(peerIP, peerPort);
 
-                // Step 2: Send handshake message
-                if (send(sockfd, handshakeMessage.data(), handshakeMessage.size(), 0) == -1) {
-                    closesocket(sockfd);
-                    throw std::runtime_error("Failed to send handshake message");
-                }
-
-                // Step 3: Receive the handshake response
-                char response[68];
-                ssize_t bytesRead = recv(sockfd, response, sizeof(response), 0);
-                if (bytesRead != 68)
-                {
-                    closesocket(sockfd);
-                    throw std::runtime_error("Invalid handshake response");
-                }
-
-                // Step 4: Validate the handshake response
-                std::string received_infohash = std::string(response, 68).substr(28, 20);
-                if (received_infohash != binaryInfoHash) {
-                    throw std::runtime_error("Invalid handshake response: Infohash mismatch");
-                }
-                std::cout << "Handshake established" << std::endl;
+                perform_handshake(sockfd, handshakeMessage, hex_to_binary(infoHash));
 
                 // Exchange multiple peer messages to download the file
                 // TODO
@@ -1066,58 +886,7 @@ int main(int argc, char* argv[]) {
                 // Divide piece into blocks and request each blocks
                 // Receive piece message for each block requested
                 // Note: INDEX ALWAYS STARTS FROM ZERO, DO NOT FORGET THIS
-                size_t currentPieceSize = (piece_index == totalPieces - 1) ? (length % pieceLength) : pieceLength;
-                if (currentPieceSize == 0)
-                {
-                    currentPieceSize = pieceLength;
-                }
-                size_t remaining = currentPieceSize;
-                size_t offset = 0;
-                std::vector<uint8_t> pieceData(currentPieceSize);
-                
-                // while (remaining > 0)    
-                // do all of the below
-                // TODO: Modify the below code to update the actual piece length
-                while(remaining > 0)
-                {
-                    size_t blockSize = std::min(PIECE_BLOCK, remaining);
-
-                    // std::cout << "Block size: " << blockSize << std::endl;
-
-                    request_block(sockfd, piece_index, offset, blockSize);
-
-                    // std::cout << "receiving message..." << std::endl;
-                    std::vector<uint8_t> message = receive_message(sockfd);
-                    if (message[0] != MessageType::piece)
-                    {
-                        throw std::runtime_error("Expected piece message");
-                    }
-
-                    // Extract piece data
-                    int index = ntohl(*reinterpret_cast<int*>(&message[1]));
-                    int begin = ntohl(*reinterpret_cast<int*>(&message[5]));
-                    const uint8_t* block = &message[9];
-                    int blockLength = message.size() - 9;
-
-                    // Save the block data
-                    std::memcpy(&pieceData[begin], block, blockLength);
-                    // std::cout << "Remaining bytes: " << remaining << std::endl;
-                    remaining -= blockLength;
-                    offset += blockLength;
-                }
-
-                std::cout << "Received blocks successfully" << std::endl;
-
-                // Verify integrity
-                std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
-                pieceHash = hex_to_binary(pieceHash);
-                int hashLength = 20; // SHA-1 hash length in bytes
-                std::string expectedPieceHash = decoded_torrent["info"]["pieces"].get<std::string>().substr(piece_index * hashLength, hashLength);
-                
-                if (pieceHash != expectedPieceHash)
-                {
-                    throw std::runtime_error("Piece hash mismatch");
-                }
+                std::vector<uint8_t> pieceData = download_piece(sockfd, piece_index, pieceLength, totalPieces, length, pieceHashes);
 
                 // Write piece to disk
                 std::ofstream output(argv[3]);
@@ -1125,7 +894,6 @@ int main(int argc, char* argv[]) {
                 output.close();
 
                 std::cout << "Piece downloaded successfully" << std::endl;
-                pieceDownloaded = true;
                 closesocket(sockfd);
             }
             catch (const std::exception& e)
@@ -1134,9 +902,6 @@ int main(int argc, char* argv[]) {
                 // continue;
             }
             // }
-            if (!pieceDownloaded) {
-                throw std::runtime_error("Failed to download the requested piece from any peer");
-            }
         }
         catch(const std::exception& e)
         {
