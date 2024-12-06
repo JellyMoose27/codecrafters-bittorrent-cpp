@@ -694,12 +694,12 @@ std::vector<uint8_t> download_file(const std::string& trackerURL, const std::str
             std::cout << "Piece " << piece_index << "/" << totalPieces << " downloaded successfully" << std::endl;
         }
         closesocket(sockfd);
-        return fullFileData;
     }
     catch (const std::exception& e)
     {
         std::cerr << "Error with peer: " << e.what() << std::endl;
     }
+    return fullFileData;
 }
 
 int main(int argc, char* argv[]) {
