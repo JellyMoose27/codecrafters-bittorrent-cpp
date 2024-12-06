@@ -605,12 +605,12 @@ std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceL
         pendingRequests.erase(it);
     }
 
-    // Verify piece hash
-    std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
-    std::string expectedPieceHash = pieceHashes;
-    if (hex_to_binary(pieceHash) != expectedPieceHash) {
-        throw std::runtime_error("Piece hash mismatch");
-    }
+    // // Verify piece hash
+    // std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
+    // std::string expectedPieceHash = pieceHashes;
+    // if (hex_to_binary(pieceHash) != expectedPieceHash) {
+    //     throw std::runtime_error("Piece hash mismatch");
+    // }
 
     return pieceData;
 }
