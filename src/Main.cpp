@@ -595,7 +595,7 @@ std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceL
     // Verify piece hash
     std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
     std::string expectedPieceHash(pieceHashes.begin() + pieceIndex * 20, pieceHashes.begin() + (pieceIndex + 1) * 20);
-    if (hex_to_binary(pieceHash) != expectedPieceHash) {
+    if (pieceHash != expectedPieceHash) {
         throw std::runtime_error("Piece hash mismatch");
     }
 
