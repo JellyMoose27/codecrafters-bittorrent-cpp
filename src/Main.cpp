@@ -19,7 +19,6 @@ typedef SSIZE_T ssize_t; // Define ssize_t for Wind
 #include <unistd.h>
 #define closesocket close
 #endif
-#include "WorkQueue.cpp"
 #include "lib/nlohmann/json.hpp"
 #include "lib/sha1.hpp"
 
@@ -595,7 +594,7 @@ std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceL
     // Verify piece hash
     std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
     std::string expectedPieceHash(pieceHashes.begin() + pieceIndex * 20, pieceHashes.begin() + (pieceIndex + 1) * 20);
-    if (pieceHash != expectedPieceHash) {
+    if (hex_to_binary(pieceHash) != expectedPieceHash) {
         throw std::runtime_error("Piece hash mismatch");
     }
 
@@ -612,84 +611,82 @@ void write_to_disk(const std::vector<uint8_t>& fullFileData, int argc, char** ar
     std::cout << "File written to " << outputFile << std::endl;
 }
 
-// Thread function for downloading pieces
-void worker_thread(WorkQueue& workQueue, const std::vector<std::string>& peerList, 
-                   size_t pieceLength, size_t totalPieces, size_t length, 
-                   const std::string& pieceHashes, std::vector<uint8_t>& fullFileData, 
-                   std::mutex& dataMutex) {
-    try {
-        // Select a peer (round-robin or random)
-        static size_t peerIndex = 0;
-        std::string peerInfo = peerList[peerIndex % peerList.size()];
-        ++peerIndex;
-
-        // Parse peer information and connect
-        auto [peerIP, peerPort] = parse_peer_info(peerInfo);
-        int sockfd = connect_to_peer(peerIP, peerPort);
-
-        // Perform handshake
-        std::string peerID = "01234567890123456789";
-        Handshake handshake(hex_to_binary(pieceHashes), peerID);
-        perform_handshake(sockfd, handshake.toVector(), hex_to_binary(pieceHashes));
-
-        while (true) {
-            // Get the next piece to download
-            auto pieceOpt = workQueue.get_piece();
-            if (!pieceOpt.has_value()) break;
-
-            size_t pieceIndex = pieceOpt.value();
-
-            // Download the piece
-            std::vector<uint8_t> pieceData = download_piece(sockfd, pieceIndex, pieceLength, totalPieces, length, pieceHashes);
-
-            // Save the downloaded piece to the file buffer
-            std::lock_guard<std::mutex> lock(dataMutex);
-            std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + pieceIndex * pieceLength);
-
-            std::cout << "Piece " << (pieceIndex + 1) << "/" << totalPieces << " downloaded successfully" << std::endl;
-        }
-
-        closesocket(sockfd);
-    } catch (const std::exception& e) {
-        std::cerr << "Worker error: " << e.what() << std::endl;
-    }
-}
-
 std::vector<uint8_t> download_file(const std::string& trackerURL, const std::string& infoHash
                   , const size_t& length, const size_t& pieceLength, const size_t& totalPieces, const std::string& pieceHashes)
 {
-    // Get list of peers
-    std::vector<std::string> peerList = request_peers(trackerURL, infoHash, "01234567890123456789", length);
-    if (peerList.empty()) throw std::runtime_error("No peers available");
+    std::string peerID = "01234567890123456789";
 
-    // Initialize work queue
-    WorkQueue workQueue;
-    for (size_t i = 0; i < totalPieces; ++i) {
-        workQueue.add_piece(i);
-    }
+    // Perform the tracker GET request to get a list of peers
+    std::vector<std::string> peerList = request_peers(trackerURL, infoHash, peerID, length);
 
-    // File buffer
+    // Establish a TCP connection with a peer, and perform a handshake
+    Handshake handshake(hex_to_binary(infoHash), peerID);
+    std::vector<char> handshakeMessage = handshake.toVector();
+    
+    if (peerList.empty()) {
+        throw std::runtime_error("No peers available for connection");
+    }           
+
+    std::string peerInfo = peerList[0];
+    // Store the full file data
     std::vector<uint8_t> fullFileData(length, 0);
+    try
+    {
+        auto [peerIP, peerPort] = parse_peer_info(peerInfo);
 
-    // Mutex for synchronizing access to the file buffer
-    std::mutex dataMutex;
+        // Step 1: Establish TCP connection with the peer
+        int sockfd = connect_to_peer(peerIP, peerPort);
 
-    // Start threads
-    size_t numThreads = std::min(peerList.size(), static_cast<size_t>(4)); // Use up to 4 threads
-    std::vector<std::thread> threads;
+        perform_handshake(sockfd, handshakeMessage, hex_to_binary(infoHash));
 
-    for (size_t i = 0; i < numThreads; ++i) {
-        threads.emplace_back(worker_thread, std::ref(workQueue), std::ref(peerList),
-                             pieceLength, totalPieces, length, std::ref(pieceHashes),
-                             std::ref(fullFileData), std::ref(dataMutex));
+        // Exchange multiple peer messages to download the file
+        // TODO
+        // Receive bitfield message
+        std::vector<uint8_t> bitfield = receive_message(sockfd);
+        if (bitfield[0] != MessageType::bitfield)
+        {
+            throw std::runtime_error("Expected bitfield message");
+        }
+
+        // int byteIndex = piece_index / 8;
+        // int bitIndex = piece_index % 8;
+        // if (byteIndex >= bitfield.size() - 1 || !(bitfield[byteIndex + 1] & (1 << (7 - bitIndex)))) {
+        //     std::cout << "Peer does not have the requested piece" << std::endl;
+        //     closesocket(sockfd);
+        //     // continue;
+        // }
+
+        std::cout << "Peer has the requested piece. Initiating download..." << std::endl;
+
+        // Send interested message
+        send_message(sockfd, MessageType::interested);
+
+        // Receive unchoke message
+        std::vector<uint8_t> unchoke = receive_message(sockfd);
+        if (unchoke[0] != MessageType::unchoke)
+        {
+            throw std::runtime_error("Expected unchoke message");
+        }
+
+        // Send request message
+        // Divide piece into blocks and request each blocks
+        // Receive piece message for each block requested
+        // Note: INDEX ALWAYS STARTS FROM ZERO, DO NOT FORGET THIS
+        for (size_t piece_index = 0; piece_index < totalPieces; piece_index++)
+        {
+            std::vector<uint8_t> pieceData = download_piece(sockfd, piece_index, pieceLength, totalPieces, length, pieceHashes);
+
+            // Write piece to disk
+            std::copy(pieceData.begin(), pieceData.end(), fullFileData.begin() + piece_index * pieceLength);;
+            std::cout << "Piece " << (piece_index + 1) << "/" << totalPieces << " downloaded successfully" << std::endl;
+        }
+        closesocket(sockfd);
     }
-
-    // Wait for all threads to complete
-    for (auto& thread : threads) {
-        thread.join();
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error with peer: " << e.what() << std::endl;
     }
-
-    return fullFileData;
+        return fullFileData;
 }
 
 int main(int argc, char* argv[]) {
