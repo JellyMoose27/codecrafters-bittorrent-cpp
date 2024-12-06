@@ -564,7 +564,7 @@ void perform_handshake(int sockfd, const std::vector<char>& handshakeMessage, co
     std::cout << "Handshake established" << std::endl;
 }
 
-std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceLength, size_t totalPieces, size_t length, std::string pieceHashes) {
+std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceLength, size_t totalPieces, size_t length, const std::string& pieceHashes) {
     size_t currentPieceSize = (pieceIndex == totalPieces - 1)
                               ? length % pieceLength
                               : pieceLength;
@@ -605,12 +605,12 @@ std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceL
         pendingRequests.erase(it);
     }
 
-    // // Verify piece hash
-    // std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
-    // std::string expectedPieceHash = pieceHashes;
-    // if (hex_to_binary(pieceHash) != expectedPieceHash) {
-    //     throw std::runtime_error("Piece hash mismatch");
-    // }
+    // Verify piece hash
+    std::string pieceHash = calculateInfohash(std::string(pieceData.begin(), pieceData.end()));
+    std::string expectedPieceHash(pieceHashes.begin() + pieceIndex * 20, pieceHashes.begin() + (pieceIndex + 1) * 20);
+    if (hex_to_binary(pieceHash) != expectedPieceHash) {
+        throw std::runtime_error("Piece hash mismatch");
+    }
 
     return pieceData;
 }
