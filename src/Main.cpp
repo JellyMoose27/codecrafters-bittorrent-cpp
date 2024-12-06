@@ -687,7 +687,7 @@ std::vector<uint8_t> download_file(const std::string& trackerURL, const std::str
         {
             worker.get();
         }
-        if (sockfd >= 0) closesocket(sockfd);
+        closesocket(sockfd);
     }
     catch (const std::exception& e)
     {
