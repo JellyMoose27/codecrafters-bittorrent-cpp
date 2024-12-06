@@ -561,7 +561,7 @@ std::vector<uint8_t> download_piece(int sockfd, size_t pieceIndex, size_t pieceL
     std::deque<BlockRequest> pendingRequests;
 
     while (remaining > 0 || !pendingRequests.empty()) {
-        while (pendingRequests.size() < 5 && remaining > 0) {
+        while (pendingRequests.size() < 10 && remaining > 0) {
             size_t blockSize = std::min(PIECE_BLOCK, remaining);
             request_block(sockfd, pieceIndex, offset, blockSize);
             pendingRequests.push_back({pieceIndex, offset, blockSize});
